@@ -1,0 +1,46 @@
+# scientific-eval default configuration.
+# Copy to ./scieval.toml in your working directory to override, or pass --config PATH.
+
+provider = "lmstudio"
+seed = 42
+temperature = 0.0
+output_dir = "out"
+
+[providers.lmstudio]
+base_url = "http://localhost:1234/v1"
+api_key = "lm-studio"          # LM Studio ignores the value but the SDK requires one
+native_api = "http://localhost:1234/api/v0"   # LM Studio REST API, used to read quantization
+
+[providers.openrouter]
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+
+[models]
+# default = "qwen2.5-14b-instruct"   # unset -> the first model the server reports
+# pass0 = "..."
+# pass1 = "..."
+# pass2 = "..."
+# pass3 = "..."
+# pass4 = "..."
+# synthesis = "..."
+
+[spellcheck]
+backend = "pyspellchecker"     # pyspellchecker | hunspell (needs the `hunspell` extra) | none
+min_token_length = 3
+max_candidates_per_section = 120
+
+[search]
+# Reference lookup for Pass 3. crossref | none
+reference_provider = "crossref"
+# Web search for Pass 4. none | tavily | brave | searxng
+web_provider = "none"
+max_results_per_query = 5
+# searxng_url = "http://localhost:8080"
+
+[limits]
+# Characters of paper text sent to Pass 0 before it falls back to the condensed form.
+pass0_max_chars = 120000
+# Characters per section sent to Pass 1.
+pass1_section_max_chars = 24000
+# References per Pass 3 call.
+pass3_batch_size = 10
