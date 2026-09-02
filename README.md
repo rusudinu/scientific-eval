@@ -30,15 +30,24 @@ uv sync --extra hunspell
 
 ## Quick start
 
-Start a model in LM Studio, then:
+Start a model in LM Studio, then either drop a PDF into the web UI:
 
 ```bash
-uv run scieval models
+make ui
+```
+
+or run it from the command line:
+
+```bash
+make evaluate paper.pdf
 ```
 
 ```bash
-uv run scieval review paper.pdf --model qwen/qwen3.5-9b
+make evaluate paper.pdf MODEL=qwen/qwen3-4b-2507 REPEATS=2
 ```
+
+`make help` lists every target. The equivalent CLI calls are `uv run scieval serve`
+and `uv run scieval review paper.pdf`.
 
 Output lands in `out/<paper>/<run-id>/`:
 
@@ -70,6 +79,23 @@ uv run scieval review /tmp/synthetic-paper.pdf
 
 It is a useful smoke test for a new endpoint or a new model: a model that cannot find the
 31.4% versus 27.2% contradiction will not find subtler problems in a real paper.
+
+## The web UI
+
+```bash
+make ui
+```
+
+`scieval serve` opens a local page on <http://localhost:8000>: drop a PDF on it, pick a
+model and how many repeats, and watch the passes run — progress streams from the server as
+each call is made, so you can see which section Pass 1 is on. When the run finishes the page
+shows the findings table (severity, location, pass, category, the quote as evidence), the
+rendered report, and download links for every artifact. Previous runs are listed underneath
+with their model, quantization, seed and prompt version; opening one loads it back without
+re-running anything.
+
+The server binds to localhost. `--host 0.0.0.0` exposes it to your network, which also
+exposes every past run and lets anyone upload a paper — it warns you when you do.
 
 ## Commands
 
@@ -317,6 +343,7 @@ turned every title lookup into "no such paper".
 ```
 src/scieval/
   cli.py          commands
+  web/            the local web UI (FastAPI + one page)
   config.py       TOML + environment + flags
   pipeline.py     orchestration
   extract/        pymupdf text, sections, bibliography, captions
