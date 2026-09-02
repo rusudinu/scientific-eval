@@ -6,7 +6,7 @@ the model only judges the comparison and whether the source supports the claim.
 
 from __future__ import annotations
 
-from ..extract.bibliography import Reference
+from ..extract.bibliography import AUTHOR_YEAR, NUMERIC_CITATION, Reference
 from ..extract.sections import sections_of_kind
 from ..schemas import Pass3Output
 from ..schemas.pass3 import CitingSentence, ReferenceCheck
@@ -117,17 +117,17 @@ def _reconcile(
             CitingSentence(quote=c.quote, location=c.location) for c in ref.citing_sentences
         ]
         if record is not None:
-            # The URL and the retraction flag are facts from the database, not model output.
+            # The URL, the retraction flag and whether a record exists at all are facts
+            # from the database, not model output.
             check.found_at = record.url if record.found else ""
             if record.is_retracted:
                 check.status = ReferenceStatus.retracted
                 if record.retraction_notes:
                     check.notes = f"{check.notes} Retraction notice: {record.retraction_notes}".strip()
-            elif not record.found and check.status in {
-                ReferenceStatus.verified,
-                ReferenceStatus.metadata_mismatch,
-            }:
-                # The model cannot verify an entry the lookup never found.
+            elif not record.found:
+                # The lookup ran and returned nothing. That is `not_found` - a reference
+                # that may not exist - and must not hide in the unverifiable bucket,
+                # which is reserved for entries nothing was able to check.
                 check.status = ReferenceStatus.not_found
             if record.is_preprint and "preprint" not in check.notes.lower():
                 check.notes = f"{check.notes} Indexed as a preprint.".strip()
@@ -179,5 +179,25 @@ def _add_missing_citations(runner: PassRunner, paper: PaperContext, output: Pass
     if result is None:
         output.limitations.append("The missing-citation check failed to produce valid output.")
         return
-    output.missing_citations.extend(result.missing_citations)
+    kept, dropped = _filter_missing_citations(result.missing_citations)
+    output.missing_citations.extend(kept)
     output.limitations.extend(result.limitations)
+    if dropped:
+        output.limitations.append(
+            f"{dropped} reported missing citations were discarded because the quoted "
+            f"sentence already carries a citation marker."
+        )
+
+
+def _filter_missing_citations(reported: list) -> tuple[list, int]:
+    """Drop claims the model called uncited whose quote visibly cites something.
+
+    Small models flag sentences that plainly end in "[1]". The marker is a fact in
+    the text, so the tool can settle it without another call.
+    """
+    kept = [item for item in reported if not _has_citation_marker(item.quote)]
+    return kept, len(reported) - len(kept)
+
+
+def _has_citation_marker(quote: str) -> bool:
+    return bool(NUMERIC_CITATION.search(quote) or AUTHOR_YEAR.search(quote))

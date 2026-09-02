@@ -233,3 +233,28 @@ def test_extract_json_stops_at_the_end_of_the_object():
     """Trailing commentary containing braces must not break the parse."""
     text = '{"section": "1 Introduction", "findings": []} Note that {} means no findings.'
     assert json.loads(extract_json(text)) == {"section": "1 Introduction", "findings": []}
+
+
+def test_extra_keys_do_not_discard_a_usable_reply():
+    """A model that adds a stray key still produced the findings; keep them."""
+    payload = json.loads(_valid_payload())
+    payload["grammar"] = ["some extra commentary the model invented"]
+    client = FakeClient([json.dumps(payload)])
+    result = structured_call(client, model="m", system="s", user="u", schema=Pass1Output)
+    assert result.ok is True
+    assert result.attempts == 1
+    assert result.value.spellcheck_triage[0].token == "allready"
+
+
+def test_a_context_length_error_is_not_retried_unconstrained():
+    """Degrading to free-form output on a context overflow hides the real problem."""
+    client = FakeClient(
+        [LLMError("Error code: 400 - the prompt exceeds the model's context length")]
+    )
+    result = structured_call(client, model="m", system="s", user="u", schema=Pass1Output)
+    assert result.ok is False
+    assert result.mode == "context_exceeded"
+    assert result.attempts == 1
+    assert "larger context" in result.error
+    # Only one call was made: no silent fallback to json_object.
+    assert len(client.calls) == 1

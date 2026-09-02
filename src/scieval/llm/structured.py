@@ -186,6 +186,16 @@ def structured_call(
             )
         except LLMError as exc:
             last_error = str(exc)
+            if _is_context_error(exc):
+                return StructuredResult(
+                    value=None, ok=False, mode="context_exceeded", attempts=attempts,
+                    error=(
+                        f"{exc}\nThe payload does not fit the model's context. Load the model "
+                        f"with a larger context, use a smaller model input by lowering "
+                        f"[limits] in scieval.toml, or pick a longer-context model."
+                    ),
+                    usage=usage_total, duration_s=duration_total, model=used_model,
+                )
             # A rejected response_format is a server capability problem: try the
             # next mode. Anything else (connection, auth) will fail the same way.
             if not _is_format_error(exc):
@@ -265,13 +275,29 @@ def _repair(
     return value, result
 
 
-def _is_format_error(exc: Exception) -> bool:
+# A context-length rejection also arrives as a 400. Retrying it without the schema
+# only trades a clear error for an unconstrained reply, so it must not look like a
+# response_format problem.
+CONTEXT_MARKERS = (
+    "context length", "context window", "maximum context", "context_length",
+    "too long", "too many tokens", "exceeds", "reduce the length", "prompt is too",
+)
+FORMAT_MARKERS = (
+    "response_format", "json_schema", "json schema", "unsupported", "not supported",
+    "invalid_request_error", "422", "schema",
+)
+
+
+def _is_context_error(exc: Exception) -> bool:
     text = str(exc).lower()
-    markers = (
-        "response_format", "json_schema", "json schema", "unsupported", "not supported",
-        "invalid_request_error", "400", "422", "schema",
-    )
-    return any(marker in text for marker in markers)
+    return any(marker in text for marker in CONTEXT_MARKERS)
+
+
+def _is_format_error(exc: Exception) -> bool:
+    if _is_context_error(exc):
+        return False
+    text = str(exc).lower()
+    return any(marker in text for marker in FORMAT_MARKERS)
 
 
 def _merge_usage(total: dict[str, int], addition: dict[str, int]) -> None:

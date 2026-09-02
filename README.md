@@ -244,6 +244,12 @@ have. It writes `calibration.md`, `calibration.csv` and `calibration.json`.
 makes tuning the match threshold free. `--threshold` sets how similar two findings must be
 to count as the same issue (default 70).
 
+On the synthetic paper above, whose eleven planted defects are the ground truth,
+`qwen/qwen3-4b-2507` at 4-bit scores recall 0.73, precision 0.26 and severity agreement 0.63:
+it finds the arithmetic contradiction, the overreaching claims and one of the two typos, and
+its precision is dominated by missing-citation reports a human reviewer would not write down.
+Use that as a sanity check on the harness, not as a target.
+
 Read the spurious list before treating precision as an error rate. A human review is rarely
 exhaustive, and the pipeline reports mechanical issues most reviewers never write down.
 
@@ -260,6 +266,22 @@ exhaustive, and the pipeline reports mechanical issues most reviewers never writ
 | `[spellcheck]` | `backend`, `min_token_length`, `max_candidates_per_section` |
 | `[search]` | `reference_provider`, `web_provider`, `max_results_per_query` |
 | `[limits]` | `pass0_max_chars`, `pass1_section_max_chars`, `pass3_batch_size` |
+
+## What the tool decides and what the model decides
+
+Anything checkable without judgement is settled by code, so a weak model cannot corrupt it:
+
+- Reference metadata, the retraction flag, and whether a record exists at all come from the
+  lookup. A reference the lookup searched for and did not find is `not_found`, whatever the
+  model says.
+- Every URL in the output was returned by a search; a URL the model invents is stripped and
+  the verdict downgraded to `could_not_verify`.
+- A claim the model reports as uncited is dropped when its own quote carries a citation
+  marker.
+- The reference audit in the final report is rendered from Pass 3 and reproduced verbatim,
+  not re-judged by the synthesis call.
+- A `verified_incorrect` number check or an unsupported claim check becomes a finding even
+  when the model forgets to repeat it under `findings`, which local models do often.
 
 ## How the passes are called
 

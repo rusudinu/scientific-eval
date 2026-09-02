@@ -8,9 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class StrictModel(BaseModel):
-    """Base for every pass schema: unknown keys are an error, not silent data loss."""
+    """Base for every pass schema.
 
-    model_config = ConfigDict(extra="forbid")
+    The JSON schema sent to the server is strict (`additionalProperties: false`),
+    but parsing ignores unknown keys: a model that adds a stray key to an otherwise
+    correct reply should not cost the whole section its findings.
+    """
+
+    model_config = ConfigDict(extra="ignore")
 
 
 class Severity(str, Enum):

@@ -16,7 +16,13 @@ from ..schemas import (
     Stability,
     sort_findings,
 )
-from ..schemas.common import ReferenceStatus, SupportsClaim, TriageClass, Verdict
+from ..schemas.common import (
+    ClaimVerdict,
+    ReferenceStatus,
+    SupportsClaim,
+    TriageClass,
+    Verdict,
+)
 
 QUOTE_MATCH_THRESHOLD = 88.0
 
@@ -65,9 +71,16 @@ def findings_from_pass1(outputs: list[Pass1Output]) -> list[Finding]:
 
 
 def findings_from_pass2(output: Pass2Output | None) -> list[Finding]:
+    """Pass 2's own findings, plus any failed check it recorded but forgot to repeat.
+
+    Models routinely mark a number check `verified_incorrect` or a claim
+    `unsupported` and then omit it from `findings`. The check is the evidence, so
+    it is promoted here rather than lost; a promotion is skipped when an existing
+    finding already covers the same values or the same quote.
+    """
     if output is None:
         return []
-    return [
+    findings = [
         Finding(
             severity=Severity(item.severity.value),
             category=item.category.value,
@@ -78,6 +91,72 @@ def findings_from_pass2(output: Pass2Output | None) -> list[Finding]:
         )
         for item in output.findings
     ]
+    findings.extend(_promoted_number_checks(output, findings))
+    findings.extend(_promoted_claim_checks(output, findings))
+    return findings
+
+
+def _promoted_number_checks(output: Pass2Output, existing: list[Finding]) -> list[Finding]:
+    promoted: list[Finding] = []
+    for check in output.number_checks:
+        if check.verdict is not Verdict.verified_incorrect:
+            continue
+        values = [v for v in check.values if v.strip()]
+        if _already_covered(existing, values + [check.quantity]):
+            continue
+        promoted.append(
+            Finding(
+                severity=Severity.major,
+                category="numbers",
+                location="; ".join(check.locations),
+                quote=" vs ".join(values) or check.quantity,
+                description=(
+                    f"{check.quantity}: the values disagree across locations. "
+                    f"{check.recomputation}"
+                ).strip(),
+                source_pass="pass2",
+                verdict=check.verdict.value,
+            )
+        )
+    return promoted
+
+
+def _promoted_claim_checks(output: Pass2Output, existing: list[Finding]) -> list[Finding]:
+    promoted: list[Finding] = []
+    for check in output.claim_checks:
+        if check.verdict is ClaimVerdict.supported:
+            continue
+        if not check.claim_quote.strip():
+            continue
+        if _already_covered(existing, [check.claim_quote]):
+            continue
+        promoted.append(
+            Finding(
+                severity=Severity.major,
+                category="claims",
+                location=check.location,
+                quote=check.claim_quote,
+                description=(
+                    f"Claim is {check.verdict.value}. {check.explanation} "
+                    f"Supporting evidence found: {check.supporting_evidence or 'none'}."
+                ).strip(),
+                source_pass="pass2",
+                verdict=check.verdict.value,
+            )
+        )
+    return promoted
+
+
+def _already_covered(existing: list[Finding], needles: list[str]) -> bool:
+    """True when a finding already mentions every distinguishing string."""
+    haystack = " ".join(f"{f.quote} {f.description} {f.location}" for f in existing).lower()
+    wanted = [n.strip().lower() for n in needles if n and n.strip()]
+    if not wanted:
+        return False
+    if any(len(n) > 25 and fuzz.partial_ratio(n, haystack) >= 90 for n in wanted):
+        return True
+    short = [n for n in wanted if len(n) <= 25]
+    return bool(short) and all(n in haystack for n in short)
 
 
 def findings_from_pass3(output: Pass3Output | None) -> list[Finding]:

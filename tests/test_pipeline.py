@@ -198,3 +198,59 @@ def test_candidates_survive_two_sections_with_the_same_title(paper, config):
     second = {c.token for c in paper.candidates_for(paper.sections[-1])}
     assert "sectoin" in first and "sectoin" not in second
     assert "paragraf" in second and "paragraf" not in first
+
+
+def test_a_reference_the_lookup_could_not_find_is_not_found_not_unverifiable(
+    paper_pdf, config, fake_client, tmp_path, monkeypatch
+):
+    """A working lookup that returns nothing is evidence, not absence of evidence."""
+    from scieval.search.base import ReferenceRecord
+
+    class EmptyLookup:
+        name = "stub"
+        available = True
+
+        def lookup(self, *, raw, doi=None, title=None, year=None):
+            return ReferenceRecord(found=False, source="stub")
+
+    monkeypatch.setattr(pipeline, "build_reference_lookup", lambda cfg: EmptyLookup())
+    config.output_dir = tmp_path / "out-notfound"
+    result = pipeline.run_review(paper_pdf, config, only=("pass0", "pass3"))
+
+    pass3 = json.loads((result.run_dir / "pass3.json").read_text())
+    assert {r["status"] for r in pass3["references"]} == {"not_found"}
+    # And it surfaces as a major finding rather than an unverifiable item.
+    assert any(f.category == "reference" for f in result.findings)
+
+
+def test_a_sentence_that_already_cites_is_not_reported_as_missing_a_citation():
+    """Small models flag sentences plainly ending in '[1]'; the marker settles it."""
+    from scieval.passes.pass3_references import _filter_missing_citations
+    from scieval.schemas.pass3 import MissingCitation
+
+    reported = [
+        MissingCitation(quote="Prior work shows sizing wastes 40% of memory [1].", location="1"),
+        MissingCitation(quote="Smith et al. (2018) showed this.", location="1"),
+        MissingCitation(quote="The first store was released in 1979.", location="1"),
+    ]
+    kept, dropped = _filter_missing_citations(reported)
+    assert dropped == 2
+    assert [k.quote for k in kept] == ["The first store was released in 1979."]
+
+
+def test_reference_audit_is_built_from_pass3_not_re_judged():
+    from scieval.passes.synthesis import reference_audit
+
+    audit = reference_audit({
+        "pass3": {"references": [
+            {"index": 2, "raw": "Belady 1966", "status": "not_found", "notes": "no record",
+             "found_at": "", "mismatch_details": ""},
+            {"index": 1, "raw": "Smith 2018", "status": "verified", "notes": "",
+             "found_at": "https://doi.org/10.1/x", "mismatch_details": ""},
+        ]}
+    })
+    lines = audit.splitlines()
+    assert lines[0].startswith("- [1] verified: Smith 2018")
+    assert "https://doi.org/10.1/x" in lines[0]
+    assert lines[1].startswith("- [2] not found: Belady 1966")
+    assert "no record" in lines[1]

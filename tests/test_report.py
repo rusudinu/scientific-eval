@@ -9,6 +9,7 @@ from scieval.report import (
     dedupe,
     fallback_report,
     findings_from_pass1,
+    findings_from_pass2,
     findings_from_pass3,
     findings_from_pass4,
     merge_runs,
@@ -16,7 +17,15 @@ from scieval.report import (
     stability_summary,
     write_findings_csv,
 )
-from scieval.schemas import Finding, Pass1Output, Pass3Output, Pass4Output, Severity, Stability
+from scieval.schemas import (
+    Finding,
+    Pass1Output,
+    Pass2Output,
+    Pass3Output,
+    Pass4Output,
+    Severity,
+    Stability,
+)
 
 
 def _finding(quote: str, category: str = "numbers", severity=Severity.major, **kwargs) -> Finding:
@@ -239,3 +248,75 @@ def test_fallback_report_reads_repeated_run_outputs():
     assert "pass2 limitation text" in report
     assert "sample size" in report
     assert "en-GB" in report
+
+
+def _pass2(number_checks=None, claim_checks=None, findings=None):
+    return Pass2Output.model_validate({
+        "number_checks": number_checks or [],
+        "claim_checks": claim_checks or [],
+        "research_question_alignment": [],
+        "findings": findings or [],
+        "limitations": [],
+    })
+
+
+def test_a_failed_number_check_becomes_a_finding_even_if_the_model_omits_it():
+    """The check is the evidence; dropping it loses confirmed defects."""
+    output = _pass2(number_checks=[{
+        "quantity": "latency reduction", "locations": ["Abstract", "4 Results"],
+        "values": ["31.4%", "27.2%"],
+        "recomputation": "(8.10 - 5.90) / 8.10 = 27.2%, not 31.4%",
+        "verdict": "verified_incorrect",
+    }])
+    findings = findings_from_pass2(output)
+    assert len(findings) == 1
+    assert findings[0].category == "numbers"
+    assert "31.4%" in findings[0].quote and "27.2%" in findings[0].quote
+    assert "not 31.4%" in findings[0].description
+
+
+def test_a_passing_number_check_produces_no_finding():
+    output = _pass2(number_checks=[{
+        "quantity": "sample size", "locations": ["Abstract"], "values": ["240"],
+        "recomputation": "consistent", "verdict": "verified_correct",
+    }])
+    assert findings_from_pass2(output) == []
+
+
+def test_a_check_already_reported_as_a_finding_is_not_duplicated():
+    output = _pass2(
+        number_checks=[{
+            "quantity": "latency reduction", "locations": ["Abstract"],
+            "values": ["31.4%", "27.2%"], "recomputation": "27.2%, not 31.4%",
+            "verdict": "verified_incorrect",
+        }],
+        findings=[{
+            "severity": "critical", "category": "numbers", "location": "Abstract",
+            "quote": "a mean latency reduction of 31.4%",
+            "description": "The abstract claims 31.4% but the table supports 27.2%.",
+        }],
+    )
+    findings = findings_from_pass2(output)
+    assert len(findings) == 1
+    assert findings[0].severity is Severity.critical
+
+
+def test_an_overreaching_claim_check_becomes_a_finding():
+    output = _pass2(claim_checks=[{
+        "claim_quote": "Adaptive caching therefore causes lower tail latency",
+        "location": "4 Results", "supporting_evidence": "Table 1 reports mean latency only",
+        "verdict": "overreach", "explanation": "Causal language for a correlational design.",
+    }])
+    findings = findings_from_pass2(output)
+    assert len(findings) == 1
+    assert findings[0].category == "claims"
+    assert "overreach" in findings[0].description
+    assert findings[0].verdict == "overreach"
+
+
+def test_a_supported_claim_check_produces_no_finding():
+    output = _pass2(claim_checks=[{
+        "claim_quote": "We reduce latency", "location": "Abstract",
+        "supporting_evidence": "Table 1", "verdict": "supported", "explanation": "",
+    }])
+    assert findings_from_pass2(output) == []

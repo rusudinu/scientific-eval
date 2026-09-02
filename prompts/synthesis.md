@@ -15,7 +15,7 @@ One paragraph. Is the paper broadly sound, or are there problems serious enough 
 A Markdown table of every finding, sorted critical -> major -> minor, with columns: Severity | Location | Description | Evidence. Evidence is the quotation or URL. Append "(unstable)" to the severity cell for unstable findings.
 
 ## 3. Reference audit
-One line per bibliography entry, in index order: the index, a status icon, and the reference. Icons: verified, warning for metadata mismatch, cross for not found, recycle for retracted, question mark for could not verify. Give details for anything that is not verified.
+Reproduce the REFERENCE AUDIT block from the input verbatim, one line per entry, in index order. Do not re-judge any status, do not promote an entry to verified, and do not add entries. You may add an icon in front of each line: check for verified, warning for metadata mismatch, cross for not found, recycle for retracted, question mark for could not verify.
 
 ## 4. Spelling and language
 The count of confirmed typos, the list of inconsistencies (spelling variant, hyphenation, terminology), and whether the paper is in a consistent language variant.
