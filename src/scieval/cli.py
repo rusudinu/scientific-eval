@@ -285,9 +285,9 @@ def extract(
     paper_context = build_paper_context(paper, config)
 
     if json_out:
-        from .pipeline import _extraction_summary
+        from .pipeline import extraction_summary
 
-        write_json(json_out, _extraction_summary(paper_context))
+        write_json(json_out, extraction_summary(paper_context))
         console.print(f"wrote {json_out}")
 
     if show == "sections":
@@ -348,6 +348,7 @@ def config_show(
                 "models": config.models or {"default": "(first model the server reports)"},
                 "seed": config.seed,
                 "temperature": config.temperature,
+                "request_timeout_s": config.request_timeout_s,
                 "output_dir": str(config.output_dir),
                 "prompts_dir": str(config.prompts_dir),
                 "spellcheck": vars(config.spellcheck),

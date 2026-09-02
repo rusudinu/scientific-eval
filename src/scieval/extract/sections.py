@@ -140,12 +140,11 @@ def _drop_duplicate_headings(
     headings: list[tuple[int, str, str]], lines: list[Line]
 ) -> list[tuple[int, str, str]]:
     """Drop repeated running headers and headings that carry no body text."""
-    seen: dict[str, int] = {}
+    counts: dict[str, int] = {}
     kept: list[tuple[int, str, str]] = []
     for item in headings:
         key = item[2].lower()
-        seen[key] = seen.get(key, 0) + 1
-    counts = dict(seen)
+        counts[key] = counts.get(key, 0) + 1
     for pos, item in enumerate(headings):
         key = item[2].lower()
         # A heading text repeated on many pages is a running header, not a section.
@@ -236,15 +235,18 @@ def _find_heading_line(
     if not target:
         return None
     numbered_target = _normalise_title(f"{number} {title}") if number else target
-    for offset in (start, 0):
-        for i in range(offset, len(lines)):
-            if i in used:
+
+    def sweep(begin: int) -> int | None:
+        for i in range(begin, len(lines)):
+            if i in used or len(lines[i].text) > 120:
                 continue
-            candidate = _normalise_title(lines[i].text)
-            if candidate in (target, numbered_target) and len(lines[i].text) <= 120:
+            if _normalise_title(lines[i].text) in (target, numbered_target):
                 return i
-        # Second sweep from the top only if the forward sweep failed.
-    return None
+        return None
+
+    # Sections normally appear in order, so search forward first; only fall back to
+    # a full sweep when the inventory lists them out of document order.
+    return sweep(start) if sweep(start) is not None else sweep(0)
 
 
 def find_section(sections: list[Section], *kinds: str) -> Section | None:

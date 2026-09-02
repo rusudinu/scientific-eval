@@ -5,6 +5,8 @@ provider = "lmstudio"
 seed = 42
 temperature = 0.0
 output_dir = "out"
+# Per-call timeout. Reasoning models on modest hardware can need several minutes a call.
+request_timeout_s = 900
 
 [providers.lmstudio]
 base_url = "http://localhost:1234/v1"

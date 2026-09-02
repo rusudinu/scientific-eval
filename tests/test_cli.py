@@ -154,3 +154,7 @@ def test_calibrate_reuse_uses_the_stored_run(paper_pdf, tmp_path, fake_client):
     second = runner.invoke(app, ["calibrate", str(folder), "--out", str(out), "--reuse"])
     assert second.exit_code == 0
     assert (out / "runs.jsonl").read_text().count("\n") == runs_before
+    # The reused run still identifies which model produced the findings.
+    settings = json.loads((folder / "calibration.json").read_text())["settings"]
+    assert settings["model"] == "fake-model"
+    assert settings["quantization"] == "Q4_K_M"

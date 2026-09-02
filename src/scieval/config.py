@@ -68,6 +68,7 @@ class Config:
     provider_name: str = "lmstudio"
     seed: int = 42
     temperature: float = 0.0
+    request_timeout_s: float = 900.0
     output_dir: Path = Path("out")
     providers: dict[str, ProviderConfig] = field(default_factory=dict)
     models: dict[str, str] = field(default_factory=dict)
@@ -126,6 +127,7 @@ def load_config(
     cfg.provider_name = raw.get("provider", cfg.provider_name)
     cfg.seed = int(raw.get("seed", cfg.seed))
     cfg.temperature = float(raw.get("temperature", cfg.temperature))
+    cfg.request_timeout_s = float(raw.get("request_timeout_s", cfg.request_timeout_s))
     cfg.output_dir = Path(raw.get("output_dir", cfg.output_dir))
 
     for name, values in (raw.get("providers") or {}).items():

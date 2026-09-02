@@ -157,7 +157,7 @@ def run_review(
         else:
             say("pass0 produced no inventory; later passes use heuristic extraction only")
 
-    write_json(paths.run_dir / "extraction.json", _extraction_summary(paper))
+    write_json(paths.run_dir / "extraction.json", extraction_summary(paper))
 
     # Pass 1 - mechanical, repeated.
     if "pass1" in selected:
@@ -249,7 +249,7 @@ def run_review(
         pass_outputs=pass_outputs,
         provenance=provenance,
         report=report,
-        extraction=_extraction_summary(paper),
+        extraction=extraction_summary(paper),
     )
 
 
@@ -272,7 +272,7 @@ def _resplit(paper: PaperContext, config: Config, say: Emit) -> None:
     compute_candidates(paper, config, paper.language)
 
 
-def _extraction_summary(paper: PaperContext) -> dict[str, Any]:
+def extraction_summary(paper: PaperContext) -> dict[str, Any]:
     return {
         "paper": str(paper.path),
         "pages": paper.document.page_count,

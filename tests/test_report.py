@@ -125,6 +125,16 @@ def test_merge_runs_marks_stability():
     assert stability_summary(merged) == {"stable": 1, "unstable": 1}
 
 
+def test_a_finding_repeated_inside_one_run_is_not_stable():
+    """Two occurrences in one run are not evidence of agreement between runs."""
+    run_a = [_finding("value A"), _finding("value A")]
+    run_b = [_finding("something else entirely")]
+    merged = merge_runs([run_a, run_b])
+    by_quote = {f.quote: f.stability for f in merged}
+    assert by_quote["value A"] is Stability.unstable
+    assert by_quote["something else entirely"] is Stability.unstable
+
+
 def test_single_run_is_labelled_single_run():
     merged = merge_runs([[_finding("only")]])
     assert merged[0].stability is Stability.single_run

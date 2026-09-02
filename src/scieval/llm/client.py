@@ -27,7 +27,7 @@ class ChatResult:
 class LLMClient:
     """Thin wrapper over the OpenAI SDK, holding provider settings and call defaults."""
 
-    def __init__(self, config: Config, *, timeout: float = 600.0, http_client: Any = None) -> None:
+    def __init__(self, config: Config, *, timeout: float | None = None, http_client: Any = None) -> None:
         from openai import OpenAI
 
         self.config = config
@@ -38,7 +38,7 @@ class LLMClient:
         self._client = OpenAI(
             base_url=self.provider.base_url,
             api_key=self.provider.resolve_api_key(),
-            timeout=timeout,
+            timeout=timeout if timeout is not None else config.request_timeout_s,
             max_retries=2,
             **extra,
         )

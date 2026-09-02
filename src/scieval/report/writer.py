@@ -157,9 +157,10 @@ def fallback_report(
 
     lines += ["", "## 5. Unverifiable items", ""]
     unverifiable = _unverifiable(pass_outputs)
-    lines.extend(f"- {item}" for item in unverifiable) if unverifiable else lines.append(
-        "- None recorded."
-    )
+    if unverifiable:
+        lines.extend(f"- {item}" for item in unverifiable)
+    else:
+        lines.append("- None recorded.")
 
     lines += ["", "## 6. Pass coverage", ""]
     lines.append(f"- Passes run: {', '.join(provenance.passes_run) or 'none'}")

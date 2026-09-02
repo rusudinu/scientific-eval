@@ -197,19 +197,21 @@ def merge_runs(runs: list[list[Finding]]) -> list[Finding]:
         return [f.model_copy(update={"stability": Stability.single_run}) for f in runs[0]]
 
     merged: list[Finding] = []
-    seen_counts: list[int] = []
-    for run in runs:
+    runs_containing: list[set[int]] = []
+    for run_number, run in enumerate(runs):
         for finding in run:
             index = _match_index(merged, finding)
             if index is None:
                 merged.append(finding.model_copy())
-                seen_counts.append(1)
+                runs_containing.append({run_number})
             else:
-                seen_counts[index] += 1
+                # Count runs, not occurrences: a finding reported twice in one run
+                # is not evidence that it is stable across runs.
+                runs_containing[index].add(run_number)
 
     total = len(runs)
-    for finding, count in zip(merged, seen_counts):
-        finding.stability = Stability.stable if count >= total else Stability.unstable
+    for finding, seen_in in zip(merged, runs_containing):
+        finding.stability = Stability.stable if len(seen_in) >= total else Stability.unstable
     return merged
 
 

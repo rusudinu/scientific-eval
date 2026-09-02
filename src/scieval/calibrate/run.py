@@ -75,8 +75,11 @@ def _predictions(
     if reuse:
         cached = _load_cached(config.output_dir, pdf)
         if cached is not None:
-            findings, run_id = cached
+            findings, run_id, provenance = cached
             say(f"  reusing run {run_id}")
+            for key in ("model", "quantization", "prompt_version", "seed"):
+                if provenance.get(key) is not None:
+                    settings.setdefault(key, provenance[key])
             return findings, run_id, ""
         say("  no cached run found; running the pipeline")
 
@@ -92,7 +95,9 @@ def _predictions(
     return result.findings, result.provenance.run_id, ""
 
 
-def _load_cached(output_dir: Path, pdf: Path) -> tuple[list[Finding], str] | None:
+def _load_cached(
+    output_dir: Path, pdf: Path
+) -> tuple[list[Finding], str, dict[str, Any]] | None:
     """Latest completed run for this paper, if one exists."""
     paper_dir = output_dir / slugify(pdf.stem)
     pointer = paper_dir / "latest.txt"
@@ -112,4 +117,12 @@ def _load_cached(output_dir: Path, pdf: Path) -> tuple[list[Finding], str] | Non
         return None
     data = json.loads(findings_file.read_text(encoding="utf-8"))
     findings = [Finding.model_validate(item) for item in data.get("findings", [])]
-    return findings, run_dir.name
+
+    run_file = run_dir / "run.json"
+    provenance: dict[str, Any] = {}
+    if run_file.is_file():
+        try:
+            provenance = json.loads(run_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            provenance = {}
+    return findings, run_dir.name, provenance
