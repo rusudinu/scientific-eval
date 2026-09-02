@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>scientific-eval</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfbfa; --panel: #ffffff; --ink: #1a1a1a; --muted: #6b6b6b;
+    --line: #e3e3e0; --accent: #2f5d8a;
+    --critical: #a4243b; --major: #b5761b; --minor: #6b6b6b;
+    --critical-bg: #fbeced; --major-bg: #fdf4e6; --minor-bg: #f2f2f0;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a; --panel: #1e2024; --ink: #e8e8e6; --muted: #9a9a97;
+      --line: #303338; --accent: #7fb0e0;
+      --critical: #ef8792; --major: #e3b169; --minor: #9a9a97;
+      --critical-bg: #2c1b1f; --major-bg: #2b2418; --minor-bg: #26282c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    padding: 18px 28px; border-bottom: 1px solid var(--line); background: var(--panel);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 640; letter-spacing: -0.01em; }
+  header .meta { color: var(--muted); font-size: 13px; font-family: var(--mono); }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 28px 80px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px; margin-bottom: 20px;
+  }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.07em;
+       color: var(--muted); margin: 0 0 14px; font-weight: 620; }
+  #drop {
+    border: 2px dashed var(--line); border-radius: 10px; padding: 40px 20px;
+    text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  #drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  #drop strong { display: block; font-size: 16px; margin-bottom: 4px; }
+  #drop span { color: var(--muted); font-size: 13px; }
+  .options { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; margin-top: 18px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  select, input[type=number] {
+    background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 7px 9px; font-size: 14px; font-family: inherit; min-width: 90px;
+  }
+  select { min-width: 230px; }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+    padding: 9px 18px; font-size: 14px; font-weight: 560; cursor: pointer; font-family: inherit;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  #log {
+    font-family: var(--mono); font-size: 12.5px; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
+    max-height: 260px; overflow-y: auto; white-space: pre-wrap; margin: 0;
+  }
+  #log .err { color: var(--critical); }
+  .counts { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip {
+    border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 560;
+    border: 1px solid var(--line);
+  }
+  .chip.critical { color: var(--critical); background: var(--critical-bg); }
+  .chip.major { color: var(--major); background: var(--major-bg); }
+  .chip.minor { color: var(--minor); background: var(--minor-bg); }
+  .chip.meta { color: var(--muted); font-family: var(--mono); font-weight: 400; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line);
+           vertical-align: top; }
+  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+       color: var(--muted); font-weight: 600; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+  td.sev { white-space: nowrap; font-weight: 600; }
+  td.sev.critical { color: var(--critical); }
+  td.sev.major { color: var(--major); }
+  td.sev.minor { color: var(--minor); }
+  td.loc { color: var(--muted); font-size: 12.5px; max-width: 190px; }
+  blockquote.quote {
+    margin: 6px 0 0; padding-left: 10px; border-left: 2px solid var(--line);
+    color: var(--muted); font-size: 12.5px; font-style: italic;
+  }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tabs button { background: transparent; color: var(--muted); border: 1px solid transparent;
+                 padding: 6px 13px; font-weight: 520; }
+  .tabs button.active { color: var(--ink); border-color: var(--line); background: var(--bg); }
+  .unstable { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .scroll { overflow-x: auto; }
+  #report { font-size: 14.5px; }
+  #report h1 { font-size: 19px; } #report h2 { font-size: 15px; text-transform: none;
+    letter-spacing: 0; color: var(--ink); margin-top: 26px; }
+  #report table { margin: 12px 0; } #report code { font-family: var(--mono); font-size: 13px; }
+  #report blockquote { margin: 12px 0; padding-left: 12px; border-left: 3px solid var(--line);
+    color: var(--muted); }
+  .history-row { display: flex; gap: 12px; align-items: baseline; padding: 8px 0;
+    border-bottom: 1px solid var(--line); font-size: 13.5px; flex-wrap: wrap; }
+  .history-row .paper { font-weight: 560; min-width: 200px; }
+  .history-row .det { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .history-row a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .empty { color: var(--muted); font-size: 13.5px; }
+  .files a { color: var(--accent); font-family: var(--mono); font-size: 12.5px;
+    margin-right: 12px; text-decoration: none; }
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>scientific-eval</h1>
+  <span class="meta" id="serverMeta">loading…</span>
+</header>
+
+<main>
+  <section class="panel">
+    <div id="drop">
+      <strong>Drop a PDF here</strong>
+      <span>or click to choose one — the review runs locally and takes a few minutes</span>
+      <input type="file" id="file" accept="application/pdf,.pdf" class="hide">
+    </div>
+    <div class="options">
+      <div>
+        <label for="model">Model</label>
+        <select id="model"><option value="">server default</option></select>
+      </div>
+      <div>
+        <label for="repeats">Repeats (passes 1&nbsp;&amp;&nbsp;2)</label>
+        <input type="number" id="repeats" value="1" min="1" max="5">
+      </div>
+      <div>
+        <label for="passes">Passes</label>
+        <select id="passes">
+          <option value="">all six</option>
+          <option value="pass0,pass1">0–1 mechanical only</option>
+          <option value="pass0,pass1,pass2">0–2 (no lookups)</option>
+          <option value="pass0,pass2">0 + 2 consistency only</option>
+        </select>
+      </div>
+      <button id="run" disabled>Review</button>
+      <span class="chip meta" id="fileName"></span>
+    </div>
+  </section>
+
+  <section class="panel hide" id="progressPanel">
+    <h2>Progress</h2>
+    <pre id="log"></pre>
+  </section>
+
+  <section class="panel hide" id="results">
+    <h2 id="resultsTitle">Results</h2>
+    <div class="counts" id="counts"></div>
+    <div class="tabs">
+      <button data-tab="findings" class="active">Findings</button>
+      <button data-tab="report">Report</button>
+      <button data-tab="files">Files</button>
+    </div>
+    <div id="tab-findings" class="scroll"></div>
+    <div id="tab-report" class="hide"><div id="report"></div></div>
+    <div id="tab-files" class="hide files"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Previous runs</h2>
+    <div id="history" class="empty">loading…</div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let chosenFile = null;
+let source = null;
+
+/* ---------- setup ---------- */
+
+async function loadConfig() {
+  try {
+    const cfg = await (await fetch('/api/config')).json();
+    $('serverMeta').textContent =
+      `${cfg.provider} · ${cfg.base_url} · seed ${cfg.seed} · temp ${cfg.temperature}` +
+      ` · refs: ${cfg.reference_provider} · web: ${cfg.web_search_provider}`;
+  } catch { $('serverMeta').textContent = 'could not read server config'; }
+}
+
+async function loadModels() {
+  const select = $('model');
+  try {
+    const data = await (await fetch('/api/models')).json();
+    if (data.error) {
+      select.insertAdjacentHTML('beforeend',
+        `<option value="" disabled>could not reach the server: ${escapeHtml(data.error)}</option>`);
+      return;
+    }
+    for (const m of data.models) {
+      const q = m.quantization ? ` (${m.quantization})` : '';
+      select.insertAdjacentHTML('beforeend',
+        `<option value="${escapeHtml(m.id)}">${escapeHtml(m.id)}${escapeHtml(q)}</option>`);
+    }
+  } catch { /* the default option still works */ }
+}
+
+/* ---------- file drop ---------- */
+
+const drop = $('drop');
+drop.addEventListener('click', () => $('file').click());
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', (e) => {
+  e.preventDefault();
+  drop.classList.remove('over');
+  if (e.dataTransfer.files.length) pickFile(e.dataTransfer.files[0]);
+});
+$('file').addEventListener('change', (e) => {
+  if (e.target.files.length) pickFile(e.target.files[0]);
+});
+
+function pickFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    $('fileName').textContent = `${file.name} is not a PDF`;
+    return;
+  }
+  chosenFile = file;
+  $('fileName').textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
+  $('run').disabled = false;
+}
+
+/* ---------- running ---------- */
+
+$('run').addEventListener('click', async () => {
+  if (!chosenFile) return;
+  $('run').disabled = true;
+  $('progressPanel').classList.remove('hide');
+  $('results').classList.add('hide');
+  $('log').textContent = '';
+
+  const form = new FormData();
+  form.append('file', chosenFile);
+  form.append('model', $('model').value);
+  form.append('repeats', $('repeats').value);
+  form.append('passes', $('passes').value);
+
+  let job;
+  try {
+    const response = await fetch('/api/runs', { method: 'POST', body: form });
+    if (!response.ok) {
+      const detail = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(detail.detail || 'upload failed');
+    }
+    job = await response.json();
+  } catch (err) {
+    logLine(`error: ${err.message}`, true);
+    $('run').disabled = false;
+    return;
+  }
+  follow(job.job_id);
+});
+
+function logLine(text, isError) {
+  const el = $('log');
+  const span = document.createElement('span');
+  if (isError) span.className = 'err';
+  span.textContent = text + '\n';
+  el.appendChild(span);
+  el.scrollTop = el.scrollHeight;
+}
+
+function follow(jobId) {
+  if (source) source.close();
+  source = new EventSource(`/api/runs/${jobId}/events`);
+  source.addEventListener('progress', (e) => logLine(JSON.parse(e.data).message));
+  source.addEventListener('finished', (e) => {
+    source.close();
+    source = null;
+    $('run').disabled = false;
+    const job = JSON.parse(e.data);
+    if (job.status === 'failed') { logLine(job.error, true); return; }
+    show(job.result, job.result.paper);
+    loadHistory();
+  });
+  source.onerror = () => {
+    logLine('lost the connection to the server', true);
+    if (source) { source.close(); source = null; }
+    $('run').disabled = false;
+  };
+}
+
+/* ---------- results ---------- */
+
+function show(data, title) {
+  $('results').classList.remove('hide');
+  $('resultsTitle').textContent = `${title || data.paper} — ${data.run_id}`;
+
+  const p = data.provenance || {};
+  const counts = data.counts || {};
+  $('counts').innerHTML = [
+    chip('critical', `${counts.critical || 0} critical`),
+    chip('major', `${counts.major || 0} major`),
+    chip('minor', `${counts.minor || 0} minor`),
+    p.model ? chip('meta', `${p.model}${p.quantization ? ' · ' + p.quantization : ''}`) : '',
+    p.seed !== undefined ? chip('meta', `seed ${p.seed}`) : '',
+    p.prompt_version ? chip('meta', `prompts v${p.prompt_version}`) : '',
+    p.duration_s ? chip('meta', `${p.duration_s}s`) : '',
+    p.search_tool_available === false ? chip('meta', 'no search tool') : '',
+  ].join('');
+
+  $('tab-findings').innerHTML = findingsTable(data.findings || []);
+  $('report').innerHTML = markdown(data.report || '_No report was produced._');
+  $('tab-files').innerHTML = filesList(data);
+  selectTab('findings');
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+const chip = (cls, text) => `<span class="chip ${cls}">${escapeHtml(text)}</span>`;
+
+function findingsTable(findings) {
+  if (!findings.length) return '<p class="empty">No findings were reported.</p>';
+  const rows = findings.map((f) => {
+    const unstable = f.stability === 'unstable'
+      ? ' <span class="unstable">(unstable)</span>' : '';
+    const quote = f.quote
+      ? `<blockquote class="quote">${escapeHtml(trim(f.quote, 240))}</blockquote>` : '';
+    const link = f.url
+      ? ` <a href="${escapeHtml(f.url)}" target="_blank" rel="noopener">source</a>` : '';
+    const fix = f.correction
+      ? `<div class="unstable">suggested: ${escapeHtml(f.correction)}</div>` : '';
+    return `<tr>
+      <td class="sev ${escapeHtml(f.severity)}">${escapeHtml(f.severity)}${unstable}</td>
+      <td class="loc">${escapeHtml(f.location || '—')}<div class="unstable">${escapeHtml(
+        f.source_pass || '')} · ${escapeHtml(f.category || '')}</div></td>
+      <td>${escapeHtml(f.description || '')}${link}${quote}${fix}</td>
+    </tr>`;
+  }).join('');
+  return `<table><thead><tr><th>Severity</th><th>Location</th><th>Finding</th></tr></thead>
+          <tbody>${rows}</tbody></table>`;
+}
+
+function filesList(data) {
+  if (!data.paper_slug && !data.run_dir) return '<p class="empty">No files.</p>';
+  const names = data.files || ['pass0.json', 'pass1.json', 'pass2.json', 'pass3.json',
+    'pass4.json', 'findings.csv', 'findings.json', 'synthesis.md', 'run.json',
+    'extraction.json'];
+  const slug = data.paper_slug || slugOf(data.paper);
+  const links = names.map((n) =>
+    `<a href="/api/history/${encodeURIComponent(slug)}/${encodeURIComponent(data.run_id)}` +
+    `/files/${encodeURIComponent(n)}" download>${escapeHtml(n)}</a>`).join('');
+  return `<p class="empty">Written to <code>${escapeHtml(data.run_dir || '')}</code></p>${links}`;
+}
+
+const slugOf = (name) => (name || 'paper').replace(/\.pdf$/i, '')
+  .replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^[-.]+|[-.]+$/g, '') || 'paper';
+
+document.querySelectorAll('.tabs button').forEach((b) =>
+  b.addEventListener('click', () => selectTab(b.dataset.tab)));
+
+function selectTab(name) {
+  document.querySelectorAll('.tabs button').forEach((b) =>
+    b.classList.toggle('active', b.dataset.tab === name));
+  for (const t of ['findings', 'report', 'files'])
+    $(`tab-${t}`).classList.toggle('hide', t !== name);
+}
+
+/* ---------- history ---------- */
+
+async function loadHistory() {
+  const box = $('history');
+  try {
+    const data = await (await fetch('/api/history')).json();
+    if (!data.runs.length) { box.className = 'empty'; box.textContent = 'No runs yet.'; return; }
+    box.className = '';
+    box.innerHTML = data.runs.map((r) => {
+      const open = r.available
+        ? `<a data-paper="${escapeHtml(r.paper_slug)}" data-run="${escapeHtml(r.run_id)}">open</a>`
+        : '<span class="det">not stored</span>';
+      const usage = r.total_usage && r.total_usage.total_tokens
+        ? ` · ${r.total_usage.total_tokens} tok` : '';
+      return `<div class="history-row">
+        <span class="paper">${escapeHtml(r.paper || '')}</span>
+        <span class="det">${escapeHtml(r.started_at || '')}</span>
+        <span class="det">${escapeHtml(r.model || '')}${
+          r.quantization ? ' · ' + escapeHtml(r.quantization) : ''}</span>
+        <span class="det">seed ${escapeHtml(String(r.seed))} · v${escapeHtml(
+          String(r.prompt_version))} · ${escapeHtml(String(r.duration_s))}s${escapeHtml(usage)}</span>
+        ${open}
+      </div>`;
+    }).join('');
+    box.querySelectorAll('a[data-run]').forEach((a) =>
+      a.addEventListener('click', () => openStored(a.dataset.paper, a.dataset.run)));
+  } catch {
+    box.className = 'empty';
+    box.textContent = 'Could not read the run history.';
+  }
+}
+
+async function openStored(paper, runId) {
+  try {
+    const data = await (await fetch(
+      `/api/history/${encodeURIComponent(paper)}/${encodeURIComponent(runId)}`)).json();
+    data.paper_slug = paper;
+    show(data, data.paper);
+  } catch { alert('Could not load that run.'); }
+}
+
+/* ---------- helpers ---------- */
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+const trim = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+
+/* Minimal Markdown: headings, tables, lists, blockquotes, code, emphasis.
+   The synthesis report is the only Markdown rendered here, and it is generated
+   by us, so a small renderer beats pulling in a library. */
+function markdown(src) {
+  const lines = String(src).split('\n');
+  const out = [];
+  let i = 0;
+  const inline = (t) => escapeHtml(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|\W)\*([^*]+)\*/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const heading = line.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) { out.push(`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`); i++; continue; }
+    if (/^\s*\|.*\|\s*$/.test(line) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) {
+      const cells = (r) => r.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+      const head = cells(line);
+      i += 2;
+      const body = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) body.push(cells(lines[i++]));
+      out.push(`<div class="scroll"><table><thead><tr>${
+        head.map((h) => `<th>${inline(h)}</th>`).join('')}</tr></thead><tbody>${
+        body.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')
+      }</tbody></table></div>`);
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i]))
+        items.push(`<li>${inline(lines[i++].replace(/^\s*[-*]\s+/, ''))}</li>`);
+      out.push(`<ul>${items.join('')}</ul>`);
+      continue;
+    }
+    if (/^\s*>\s?/.test(line)) {
+      const quoted = [];
+      while (i < lines.length && /^\s*>\s?/.test(lines[i]))
+        quoted.push(inline(lines[i++].replace(/^\s*>\s?/, '')));
+      out.push(`<blockquote>${quoted.join(' ')}</blockquote>`);
+      continue;
+    }
+    if (!line.trim()) { i++; continue; }
+    const para = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,6}\s|\s*[-*]\s|\s*>|\s*\|)/.test(lines[i]))
+      para.push(inline(lines[i++]));
+    out.push(`<p>${para.join(' ')}</p>`);
+  }
+  return out.join('\n');
+}
+
+loadConfig();
+loadModels();
+loadHistory();
+</script>
+</body>
+</html>

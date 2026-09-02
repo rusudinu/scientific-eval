@@ -342,6 +342,48 @@ def extract(
         raise typer.BadParameter("--show must be sections, references, candidates, captions or text")
 
 
+@app.command()
+def serve(
+    provider: ProviderOpt = None,
+    model: ModelOpt = None,
+    config_path: ConfigOpt = None,
+    out: OutOpt = None,
+    host: Annotated[str, typer.Option("--host", help="Interface to bind. Localhost by default.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", "-P", help="Port to listen on.")] = 8000,
+    open_browser: Annotated[bool, typer.Option("--open/--no-open", help="Open the page on start.")] = True,
+) -> None:
+    """Serve the local web UI: drop a PDF, watch the passes run, read the report."""
+    config = _config(config_path, provider, model, None, None, None, out)
+    try:
+        from .web import MissingDependency, create_app
+    except ImportError as exc:  # pragma: no cover
+        _fail(str(exc), 2)
+
+    try:
+        web_app = create_app(config)
+    except MissingDependency as exc:
+        _fail(str(exc), 2)
+
+    import uvicorn
+
+    url = f"http://{'localhost' if host in {'127.0.0.1', '0.0.0.0'} else host}:{port}"
+    console.print(f"scientific-eval UI on [bold]{url}[/bold]")
+    console.print(f"[dim]{config.provider_name} at {config.provider.base_url}, "
+                  f"writing to {config.output_dir}[/dim]")
+    if host == "0.0.0.0":
+        console.print(
+            "[yellow]Bound to all interfaces: anyone on your network can upload papers "
+            "and read past runs.[/yellow]"
+        )
+    if open_browser:
+        import threading
+        import webbrowser
+
+        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+
+    uvicorn.run(web_app, host=host, port=port, log_level="warning")
+
+
 @app.command("config-show")
 def config_show(
     provider: ProviderOpt = None,
