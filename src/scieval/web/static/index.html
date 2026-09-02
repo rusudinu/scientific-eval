@@ -2,173 +2,431 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>scientific-eval</title>
 <style>
+/* ---------------------------------------------------------------------------
+   iOS design system: SF typography, system colours, grouped inset lists,
+   segmented controls. Light and dark are both first-class; dark uses the true
+   black grouped background iOS uses on OLED.
+   --------------------------------------------------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  /* System colours (light) */
+  --blue: #007AFF;
+  --red: #FF3B30;
+  --orange: #FF9500;
+  --green: #34C759;
+  --gray: #8E8E93;
+  --gray2: #AEAEB2;
+  --gray3: #C7C7CC;
+
+  /* Backgrounds — grouped list style */
+  --bg-grouped: #F2F2F7;
+  --bg-surface: #FFFFFF;
+  --bg-surface-2: #F2F2F7;
+  --fill-quaternary: rgba(116, 116, 128, 0.08);
+  --fill-tertiary: rgba(118, 118, 128, 0.12);
+
+  /* Labels */
+  --label: #000000;
+  --label-secondary: rgba(60, 60, 67, 0.60);
+  --label-tertiary: rgba(60, 60, 67, 0.30);
+  --separator: rgba(60, 60, 67, 0.29);
+
+  /* Severity tints */
+  --red-tint: rgba(255, 59, 48, 0.12);
+  --orange-tint: rgba(255, 149, 0, 0.14);
+  --gray-tint: rgba(142, 142, 147, 0.14);
+
+  --nav-bg: rgba(249, 249, 249, 0.82);
+
+  --radius-card: 10px;
+  --radius-control: 10px;
+  --inset: 16px;
+
+  --text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
   :root {
-    color-scheme: light dark;
-    --bg: #fbfbfa; --panel: #ffffff; --ink: #1a1a1a; --muted: #6b6b6b;
-    --line: #e3e3e0; --accent: #2f5d8a;
-    --critical: #a4243b; --major: #b5761b; --minor: #6b6b6b;
-    --critical-bg: #fbeced; --major-bg: #fdf4e6; --minor-bg: #f2f2f0;
-    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --blue: #0A84FF;
+    --red: #FF453A;
+    --orange: #FF9F0A;
+    --green: #30D158;
+    --gray: #8E8E93;
+    --gray2: #636366;
+    --gray3: #48484A;
+
+    --bg-grouped: #000000;
+    --bg-surface: #1C1C1E;
+    --bg-surface-2: #2C2C2E;
+    --fill-quaternary: rgba(118, 118, 128, 0.18);
+    --fill-tertiary: rgba(118, 118, 128, 0.24);
+
+    --label: #FFFFFF;
+    --label-secondary: rgba(235, 235, 245, 0.60);
+    --label-tertiary: rgba(235, 235, 245, 0.30);
+    --separator: rgba(84, 84, 88, 0.65);
+
+    --red-tint: rgba(255, 69, 58, 0.18);
+    --orange-tint: rgba(255, 159, 10, 0.18);
+    --gray-tint: rgba(142, 142, 147, 0.20);
+
+    --nav-bg: rgba(28, 28, 30, 0.80);
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #16171a; --panel: #1e2024; --ink: #e8e8e6; --muted: #9a9a97;
-      --line: #303338; --accent: #7fb0e0;
-      --critical: #ef8792; --major: #e3b169; --minor: #9a9a97;
-      --critical-bg: #2c1b1f; --major-bg: #2b2418; --minor-bg: #26282c;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  header {
-    padding: 18px 28px; border-bottom: 1px solid var(--line); background: var(--panel);
-    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
-  }
-  header h1 { margin: 0; font-size: 17px; font-weight: 640; letter-spacing: -0.01em; }
-  header .meta { color: var(--muted); font-size: 13px; font-family: var(--mono); }
-  main { max-width: 1180px; margin: 0 auto; padding: 24px 28px 80px; }
-  .panel {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-    padding: 20px; margin-bottom: 20px;
-  }
-  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.07em;
-       color: var(--muted); margin: 0 0 14px; font-weight: 620; }
-  #drop {
-    border: 2px dashed var(--line); border-radius: 10px; padding: 40px 20px;
-    text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
-  }
-  #drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
-  #drop strong { display: block; font-size: 16px; margin-bottom: 4px; }
-  #drop span { color: var(--muted); font-size: 13px; }
-  .options { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; margin-top: 18px; }
-  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
-  select, input[type=number] {
-    background: var(--bg); color: var(--ink); border: 1px solid var(--line);
-    border-radius: 7px; padding: 7px 9px; font-size: 14px; font-family: inherit; min-width: 90px;
-  }
-  select { min-width: 230px; }
-  button {
-    background: var(--accent); color: #fff; border: 0; border-radius: 7px;
-    padding: 9px 18px; font-size: 14px; font-weight: 560; cursor: pointer; font-family: inherit;
-  }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
-  #log {
-    font-family: var(--mono); font-size: 12.5px; background: var(--bg);
-    border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
-    max-height: 260px; overflow-y: auto; white-space: pre-wrap; margin: 0;
-  }
-  #log .err { color: var(--critical); }
-  .counts { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-  .chip {
-    border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 560;
-    border: 1px solid var(--line);
-  }
-  .chip.critical { color: var(--critical); background: var(--critical-bg); }
-  .chip.major { color: var(--major); background: var(--major-bg); }
-  .chip.minor { color: var(--minor); background: var(--minor-bg); }
-  .chip.meta { color: var(--muted); font-family: var(--mono); font-weight: 400; }
-  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line);
-           vertical-align: top; }
-  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
-       color: var(--muted); font-weight: 600; }
-  tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
-  td.sev { white-space: nowrap; font-weight: 600; }
-  td.sev.critical { color: var(--critical); }
-  td.sev.major { color: var(--major); }
-  td.sev.minor { color: var(--minor); }
-  td.loc { color: var(--muted); font-size: 12.5px; max-width: 190px; }
-  blockquote.quote {
-    margin: 6px 0 0; padding-left: 10px; border-left: 2px solid var(--line);
-    color: var(--muted); font-size: 12.5px; font-style: italic;
-  }
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-  .tabs button { background: transparent; color: var(--muted); border: 1px solid transparent;
-                 padding: 6px 13px; font-weight: 520; }
-  .tabs button.active { color: var(--ink); border-color: var(--line); background: var(--bg); }
-  .unstable { font-size: 11px; color: var(--muted); font-weight: 400; }
-  .scroll { overflow-x: auto; }
-  #report { font-size: 14.5px; }
-  #report h1 { font-size: 19px; } #report h2 { font-size: 15px; text-transform: none;
-    letter-spacing: 0; color: var(--ink); margin-top: 26px; }
-  #report table { margin: 12px 0; } #report code { font-family: var(--mono); font-size: 13px; }
-  #report blockquote { margin: 12px 0; padding-left: 12px; border-left: 3px solid var(--line);
-    color: var(--muted); }
-  .history-row { display: flex; gap: 12px; align-items: baseline; padding: 8px 0;
-    border-bottom: 1px solid var(--line); font-size: 13.5px; flex-wrap: wrap; }
-  .history-row .paper { font-weight: 560; min-width: 200px; }
-  .history-row .det { color: var(--muted); font-family: var(--mono); font-size: 12px; }
-  .history-row a { color: var(--accent); cursor: pointer; text-decoration: none; }
-  .empty { color: var(--muted); font-size: 13.5px; }
-  .files a { color: var(--accent); font-family: var(--mono); font-size: 12.5px;
-    margin-right: 12px; text-decoration: none; }
-  .hide { display: none !important; }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  margin: 0;
+  background: var(--bg-grouped);
+  color: var(--label);
+  font-family: var(--text);
+  font-size: 17px;              /* iOS Body */
+  line-height: 1.294;
+  letter-spacing: -0.022em;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* --- Navigation bar ------------------------------------------------------ */
+
+.navbar {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--nav-bg);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid var(--separator);
+  padding: 11px var(--inset) calc(11px + env(safe-area-inset-top)) ;
+  padding-top: calc(11px + env(safe-area-inset-top));
+  text-align: center;
+}
+.navbar .title { font-size: 17px; font-weight: 600; letter-spacing: -0.022em; }
+
+.large-title {
+  padding: 8px var(--inset) 2px;
+  font-size: 34px; font-weight: 700; letter-spacing: 0.011em; line-height: 1.2;
+}
+.subtitle {
+  padding: 2px var(--inset) 0;
+  font-size: 13px; color: var(--label-secondary); letter-spacing: -0.008em;
+  font-family: var(--mono);
+  word-break: break-word;
+}
+
+main { max-width: 760px; margin: 0 auto; padding: 8px 0 60px; }
+
+/* --- Grouped inset lists ------------------------------------------------- */
+
+.group {
+  margin: 26px 0 0;
+  /* Clear the sticky nav bar when a section is scrolled into view. */
+  scroll-margin-top: 68px;
+}
+.group-header {
+  padding: 0 calc(var(--inset) + 4px) 7px;
+  font-size: 13px; font-weight: 400; letter-spacing: -0.008em;
+  color: var(--label-secondary);
+  text-transform: uppercase;
+}
+.group-footer {
+  padding: 7px calc(var(--inset) + 4px) 0;
+  font-size: 13px; color: var(--label-secondary); letter-spacing: -0.008em;
+}
+.card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-card);
+  margin: 0 var(--inset);
+  overflow: hidden;
+}
+.row {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 44px; padding: 11px var(--inset);
+  position: relative;
+}
+.row + .row::before {
+  content: ""; position: absolute; top: 0; left: var(--inset); right: 0;
+  height: 0.5px; background: var(--separator);
+}
+.row .label { flex: 0 1 auto; min-width: 0; }
+.row .value {
+  margin-left: auto; color: var(--label-secondary); text-align: right;
+  display: flex; align-items: center; gap: 6px; flex: 0 0 auto;
+}
+/* A two-line row: title on top, caption beneath, both truncated to one line. */
+.row .stack { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.row .stack > * {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row .stack .title { font-size: 17px; letter-spacing: -0.022em; }
+.row.tappable { cursor: pointer; }
+.row.tappable:active { background: var(--fill-quaternary); }
+
+.chevron { width: 7px; height: 12px; flex: 0 0 auto; color: var(--gray2); }
+
+/* --- Drop zone ----------------------------------------------------------- */
+
+#drop {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 34px 20px;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+#drop.over { background: color-mix(in srgb, var(--blue) 10%, transparent); }
+#drop .glyph { width: 42px; height: 42px; color: var(--blue); margin-bottom: 4px; }
+#drop .headline { font-size: 17px; font-weight: 600; letter-spacing: -0.022em; }
+#drop .footnote {
+  font-size: 13px; color: var(--label-secondary); text-align: center;
+  max-width: 34ch; letter-spacing: -0.008em;
+}
+#drop.has-file .glyph { color: var(--green); }
+
+/* --- Controls ------------------------------------------------------------ */
+
+select, input[type=number] {
+  font-family: inherit; font-size: 17px; letter-spacing: -0.022em;
+  color: var(--label-secondary);
+  background: transparent; border: 0; padding: 0 2px 0 0;
+  text-align: right; text-align-last: right;
+  appearance: none; -webkit-appearance: none;
+  max-width: 62vw;
+}
+input[type=number] {
+  background: var(--fill-quaternary); border-radius: 7px;
+  padding: 5px 10px; width: 66px; text-align: center; text-align-last: center;
+  color: var(--label);
+}
+select:focus, input:focus { outline: none; }
+
+.btn {
+  display: block; width: calc(100% - 2 * var(--inset)); margin: 22px var(--inset) 0;
+  min-height: 50px; border: 0; border-radius: 12px;
+  background: var(--blue); color: #fff;
+  font-family: inherit; font-size: 17px; font-weight: 600; letter-spacing: -0.022em;
+  cursor: pointer; transition: opacity .15s ease, transform .1s ease;
+}
+.btn:active:not(:disabled) { opacity: .82; transform: scale(0.985); }
+.btn:disabled { background: var(--fill-tertiary); color: var(--label-tertiary); cursor: default; }
+
+/* --- Segmented control --------------------------------------------------- */
+
+.segmented {
+  display: flex; gap: 2px; margin: 0 var(--inset) 12px;
+  background: var(--fill-tertiary); border-radius: 9px; padding: 2px;
+}
+.segmented button {
+  flex: 1; border: 0; background: transparent; border-radius: 7px;
+  font-family: inherit; font-size: 13px; font-weight: 500; letter-spacing: -0.008em;
+  color: var(--label); min-height: 32px; cursor: pointer;
+  transition: background .2s ease, box-shadow .2s ease;
+}
+.segmented button.active {
+  background: var(--bg-surface);
+  box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04);
+  font-weight: 600;
+}
+
+/* --- Badges -------------------------------------------------------------- */
+
+.badges { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--inset) 14px; }
+.badge {
+  font-size: 13px; font-weight: 590; letter-spacing: -0.008em;
+  padding: 4px 10px; border-radius: 100px;
+  background: var(--gray-tint); color: var(--label-secondary);
+}
+.badge.critical { background: var(--red-tint); color: var(--red); }
+.badge.major { background: var(--orange-tint); color: var(--orange); }
+.badge.minor { background: var(--gray-tint); color: var(--label-secondary); }
+.badge.mono { font-family: var(--mono); font-size: 12px; font-weight: 400; }
+
+/* --- Findings list ------------------------------------------------------- */
+
+.finding {
+  display: block; padding: 12px var(--inset); position: relative;
+}
+.finding + .finding::before {
+  content: ""; position: absolute; top: 0; left: var(--inset); right: 0;
+  height: 0.5px; background: var(--separator);
+}
+.finding .head { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.finding .sev {
+  font-size: 12px; font-weight: 640; letter-spacing: 0.01em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 100px;
+}
+.finding .sev.critical { background: var(--red-tint); color: var(--red); }
+.finding .sev.major { background: var(--orange-tint); color: var(--orange); }
+.finding .sev.minor { background: var(--gray-tint); color: var(--label-secondary); }
+.finding .where {
+  font-size: 13px; color: var(--label-secondary); letter-spacing: -0.008em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.finding .body { font-size: 15px; letter-spacing: -0.016em; line-height: 1.35; }
+.finding .quote {
+  margin: 7px 0 0; padding: 8px 11px;
+  background: var(--bg-surface-2); border-radius: 8px;
+  font-size: 13px; color: var(--label-secondary); letter-spacing: -0.008em;
+  border-left: 3px solid var(--gray3);
+}
+.finding .fix { margin-top: 5px; font-size: 13px; color: var(--green); }
+.finding .link { font-size: 13px; color: var(--blue); text-decoration: none; }
+.tagline {
+  font-size: 12px; color: var(--label-tertiary);
+  font-family: var(--mono); letter-spacing: 0; line-height: 1.5;
+}
+.finding .tagline { margin-top: 5px; }
+
+/* --- Progress log -------------------------------------------------------- */
+
+#log {
+  margin: 0; padding: 12px var(--inset);
+  font-family: var(--mono); font-size: 12px; line-height: 1.7;
+  color: var(--label-secondary);
+  max-height: 260px; overflow-y: auto; white-space: pre-wrap;
+}
+#log .err { color: var(--red); }
+#log .now { color: var(--label); }
+
+.spinner {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid var(--fill-tertiary); border-top-color: var(--blue);
+  animation: spin .8s linear infinite; display: inline-block; vertical-align: -2px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- Report -------------------------------------------------------------- */
+
+#report { padding: 4px var(--inset) 16px; font-size: 15px; letter-spacing: -0.016em; }
+#report h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.007em; margin: 18px 0 8px; }
+#report h2 { font-size: 17px; font-weight: 640; letter-spacing: -0.022em; margin: 22px 0 6px; }
+#report h3 { font-size: 15px; font-weight: 640; margin: 16px 0 4px; }
+#report p { margin: 8px 0; line-height: 1.45; }
+#report ul { margin: 8px 0; padding-left: 20px; }
+#report li { margin: 3px 0; line-height: 1.4; }
+#report code { font-family: var(--mono); font-size: 13px;
+  background: var(--fill-quaternary); padding: 1px 5px; border-radius: 5px; }
+#report blockquote {
+  margin: 10px 0; padding: 9px 12px; background: var(--bg-surface-2);
+  border-radius: 8px; color: var(--label-secondary); font-size: 14px;
+}
+#report a { color: var(--blue); text-decoration: none; }
+#report table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 10px 0; }
+#report th, #report td {
+  text-align: left; padding: 8px 10px; border-bottom: 0.5px solid var(--separator);
+  vertical-align: top;
+}
+#report th { color: var(--label-secondary); font-weight: 590; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.01em; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* --- Misc ---------------------------------------------------------------- */
+
+.empty {
+  padding: 22px var(--inset); text-align: center;
+  color: var(--label-secondary); font-size: 15px; letter-spacing: -0.016em;
+}
+.file-row .name { font-family: var(--mono); font-size: 14px; }
+.hide { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+@media (min-width: 700px) {
+  .card { border-radius: 12px; }
+  main { padding-top: 4px; }
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>scientific-eval</h1>
-  <span class="meta" id="serverMeta">loading…</span>
-</header>
+
+<div class="navbar"><div class="title">scientific-eval</div></div>
 
 <main>
-  <section class="panel">
-    <div id="drop">
-      <strong>Drop a PDF here</strong>
-      <span>or click to choose one — the review runs locally and takes a few minutes</span>
-      <input type="file" id="file" accept="application/pdf,.pdf" class="hide">
-    </div>
-    <div class="options">
-      <div>
-        <label for="model">Model</label>
-        <select id="model"><option value="">server default</option></select>
+  <h1 class="large-title">Review a paper</h1>
+  <p class="subtitle" id="serverMeta">loading…</p>
+
+  <!-- Upload ------------------------------------------------------------- -->
+  <section class="group">
+    <div class="card">
+      <div id="drop">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 16V4m0 0L8 8m4-4 4 4"/>
+          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+        </svg>
+        <div class="headline" id="dropHeadline">Drop a PDF here</div>
+        <div class="footnote" id="dropFootnote">
+          or tap to choose one. The review runs locally and takes a few minutes.
+        </div>
+        <input type="file" id="file" accept="application/pdf,.pdf" class="sr-only">
       </div>
-      <div>
-        <label for="repeats">Repeats (passes 1&nbsp;&amp;&nbsp;2)</label>
-        <input type="number" id="repeats" value="1" min="1" max="5">
-      </div>
-      <div>
-        <label for="passes">Passes</label>
-        <select id="passes">
-          <option value="">all six</option>
-          <option value="pass0,pass1">0–1 mechanical only</option>
-          <option value="pass0,pass1,pass2">0–2 (no lookups)</option>
-          <option value="pass0,pass2">0 + 2 consistency only</option>
-        </select>
-      </div>
-      <button id="run" disabled>Review</button>
-      <span class="chip meta" id="fileName"></span>
     </div>
   </section>
 
-  <section class="panel hide" id="progressPanel">
-    <h2>Progress</h2>
-    <pre id="log"></pre>
+  <!-- Options ------------------------------------------------------------ -->
+  <section class="group">
+    <div class="group-header">Options</div>
+    <div class="card">
+      <label class="row" for="model">
+        <span class="label">Model</span>
+        <span class="value">
+          <select id="model"><option value="">Server default</option></select>
+          <svg class="chevron" viewBox="0 0 7 12" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l5 5-5 5"/></svg>
+        </span>
+      </label>
+      <label class="row" for="passes">
+        <span class="label">Passes</span>
+        <span class="value">
+          <select id="passes">
+            <option value="">All six</option>
+            <option value="pass0,pass1">Mechanical only</option>
+            <option value="pass0,pass1,pass2">No lookups</option>
+            <option value="pass0,pass2">Consistency only</option>
+          </select>
+          <svg class="chevron" viewBox="0 0 7 12" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l5 5-5 5"/></svg>
+        </span>
+      </label>
+      <label class="row" for="repeats">
+        <span class="label">Repeats</span>
+        <span class="value"><input type="number" id="repeats" value="1" min="1" max="5"></span>
+      </label>
+    </div>
+    <div class="group-footer">
+      Passes 1 and 2 run this many times. A finding seen in every run is marked stable.
+    </div>
+    <button class="btn" id="run" disabled>Review</button>
   </section>
 
-  <section class="panel hide" id="results">
-    <h2 id="resultsTitle">Results</h2>
-    <div class="counts" id="counts"></div>
-    <div class="tabs">
+  <!-- Progress ----------------------------------------------------------- -->
+  <section class="group hide" id="progressPanel">
+    <div class="group-header" id="progressHeader">Progress</div>
+    <div class="card"><pre id="log"></pre></div>
+  </section>
+
+  <!-- Results ------------------------------------------------------------ -->
+  <section class="group hide" id="results">
+    <div class="group-header" id="resultsTitle">Results</div>
+    <div class="badges" id="counts"></div>
+    <div class="segmented" id="tabs">
       <button data-tab="findings" class="active">Findings</button>
       <button data-tab="report">Report</button>
       <button data-tab="files">Files</button>
     </div>
-    <div id="tab-findings" class="scroll"></div>
-    <div id="tab-report" class="hide"><div id="report"></div></div>
-    <div id="tab-files" class="hide files"></div>
+    <div class="card">
+      <div id="tab-findings"></div>
+      <div id="tab-report" class="hide"><div id="report"></div></div>
+      <div id="tab-files" class="hide"></div>
+    </div>
   </section>
 
-  <section class="panel">
-    <h2>Previous runs</h2>
-    <div id="history" class="empty">loading…</div>
+  <!-- History ------------------------------------------------------------ -->
+  <section class="group">
+    <div class="group-header">Previous runs</div>
+    <div class="card"><div id="history" class="empty">Loading…</div></div>
   </section>
 </main>
 
@@ -177,6 +435,9 @@ const $ = (id) => document.getElementById(id);
 let chosenFile = null;
 let source = null;
 
+const CHEVRON = `<svg class="chevron" viewBox="0 0 7 12" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l5 5-5 5"/></svg>`;
+
 /* ---------- setup ---------- */
 
 async function loadConfig() {
@@ -184,8 +445,8 @@ async function loadConfig() {
     const cfg = await (await fetch('/api/config')).json();
     $('serverMeta').textContent =
       `${cfg.provider} · ${cfg.base_url} · seed ${cfg.seed} · temp ${cfg.temperature}` +
-      ` · refs: ${cfg.reference_provider} · web: ${cfg.web_search_provider}`;
-  } catch { $('serverMeta').textContent = 'could not read server config'; }
+      ` · refs ${cfg.reference_provider} · web ${cfg.web_search_provider}`;
+  } catch { $('serverMeta').textContent = 'could not read the server config'; }
 }
 
 async function loadModels() {
@@ -194,18 +455,18 @@ async function loadModels() {
     const data = await (await fetch('/api/models')).json();
     if (data.error) {
       select.insertAdjacentHTML('beforeend',
-        `<option value="" disabled>could not reach the server: ${escapeHtml(data.error)}</option>`);
+        `<option value="" disabled>Server unreachable</option>`);
       return;
     }
     for (const m of data.models) {
       const q = m.quantization ? ` (${m.quantization})` : '';
       select.insertAdjacentHTML('beforeend',
-        `<option value="${escapeHtml(m.id)}">${escapeHtml(m.id)}${escapeHtml(q)}</option>`);
+        `<option value="${escapeHtml(m.id)}">${escapeHtml(m.id + q)}</option>`);
     }
   } catch { /* the default option still works */ }
 }
 
-/* ---------- file drop ---------- */
+/* ---------- file selection ---------- */
 
 const drop = $('drop');
 drop.addEventListener('click', () => $('file').click());
@@ -222,11 +483,14 @@ $('file').addEventListener('change', (e) => {
 
 function pickFile(file) {
   if (!file.name.toLowerCase().endsWith('.pdf')) {
-    $('fileName').textContent = `${file.name} is not a PDF`;
+    $('dropFootnote').textContent = `${file.name} is not a PDF.`;
     return;
   }
   chosenFile = file;
-  $('fileName').textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
+  drop.classList.add('has-file');
+  $('dropHeadline').textContent = file.name;
+  $('dropFootnote').textContent =
+    `${(file.size / 1024 / 1024).toFixed(1)} MB · tap to choose a different file`;
   $('run').disabled = false;
 }
 
@@ -234,7 +498,7 @@ function pickFile(file) {
 
 $('run').addEventListener('click', async () => {
   if (!chosenFile) return;
-  $('run').disabled = true;
+  setRunning(true);
   $('progressPanel').classList.remove('hide');
   $('results').classList.add('hide');
   $('log').textContent = '';
@@ -254,17 +518,25 @@ $('run').addEventListener('click', async () => {
     }
     job = await response.json();
   } catch (err) {
-    logLine(`error: ${err.message}`, true);
-    $('run').disabled = false;
+    logLine(`error: ${err.message}`, 'err');
+    setRunning(false);
     return;
   }
   follow(job.job_id);
 });
 
-function logLine(text, isError) {
+function setRunning(running) {
+  $('run').disabled = running || !chosenFile;
+  $('run').textContent = running ? 'Reviewing…' : 'Review';
+  $('progressHeader').innerHTML = running
+    ? 'Progress <span class="spinner"></span>' : 'Progress';
+}
+
+function logLine(text, cls) {
   const el = $('log');
+  el.querySelectorAll('.now').forEach((n) => n.classList.remove('now'));
   const span = document.createElement('span');
-  if (isError) span.className = 'err';
+  span.className = cls || 'now';
   span.textContent = text + '\n';
   el.appendChild(span);
   el.scrollTop = el.scrollHeight;
@@ -277,16 +549,16 @@ function follow(jobId) {
   source.addEventListener('finished', (e) => {
     source.close();
     source = null;
-    $('run').disabled = false;
+    setRunning(false);
     const job = JSON.parse(e.data);
-    if (job.status === 'failed') { logLine(job.error, true); return; }
+    if (job.status === 'failed') { logLine(job.error, 'err'); return; }
     show(job.result, job.result.paper);
     loadHistory();
   });
   source.onerror = () => {
-    logLine('lost the connection to the server', true);
+    logLine('lost the connection to the server', 'err');
     if (source) { source.close(); source = null; }
-    $('run').disabled = false;
+    setRunning(false);
   };
 }
 
@@ -294,72 +566,81 @@ function follow(jobId) {
 
 function show(data, title) {
   $('results').classList.remove('hide');
-  $('resultsTitle').textContent = `${title || data.paper} — ${data.run_id}`;
+  $('resultsTitle').textContent = `${title || data.paper} · ${data.run_id}`;
 
   const p = data.provenance || {};
-  const counts = data.counts || {};
+  const c = data.counts || {};
   $('counts').innerHTML = [
-    chip('critical', `${counts.critical || 0} critical`),
-    chip('major', `${counts.major || 0} major`),
-    chip('minor', `${counts.minor || 0} minor`),
-    p.model ? chip('meta', `${p.model}${p.quantization ? ' · ' + p.quantization : ''}`) : '',
-    p.seed !== undefined ? chip('meta', `seed ${p.seed}`) : '',
-    p.prompt_version ? chip('meta', `prompts v${p.prompt_version}`) : '',
-    p.duration_s ? chip('meta', `${p.duration_s}s`) : '',
-    p.search_tool_available === false ? chip('meta', 'no search tool') : '',
+    badge('critical', `${c.critical || 0} critical`),
+    badge('major', `${c.major || 0} major`),
+    badge('minor', `${c.minor || 0} minor`),
+    p.model ? badge('mono', `${p.model}${p.quantization ? ' · ' + p.quantization : ''}`) : '',
+    p.seed !== undefined ? badge('mono', `seed ${p.seed}`) : '',
+    p.prompt_version ? badge('mono', `prompts v${p.prompt_version}`) : '',
+    p.duration_s ? badge('mono', `${p.duration_s}s`) : '',
+    p.search_tool_available === false ? badge('mono', 'no search tool') : '',
   ].join('');
 
-  $('tab-findings').innerHTML = findingsTable(data.findings || []);
+  $('tab-findings').innerHTML = findingsList(data.findings || []);
   $('report').innerHTML = markdown(data.report || '_No report was produced._');
   $('tab-files').innerHTML = filesList(data);
   selectTab('findings');
   $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-const chip = (cls, text) => `<span class="chip ${cls}">${escapeHtml(text)}</span>`;
+const badge = (cls, text) => `<span class="badge ${cls}">${escapeHtml(text)}</span>`;
 
-function findingsTable(findings) {
-  if (!findings.length) return '<p class="empty">No findings were reported.</p>';
-  const rows = findings.map((f) => {
-    const unstable = f.stability === 'unstable'
-      ? ' <span class="unstable">(unstable)</span>' : '';
+function findingsList(findings) {
+  if (!findings.length) return '<div class="empty">No findings were reported.</div>';
+  return findings.map((f) => {
+    const unstable = f.stability === 'unstable' ? ' · unstable' : '';
     const quote = f.quote
-      ? `<blockquote class="quote">${escapeHtml(trim(f.quote, 240))}</blockquote>` : '';
+      ? `<div class="quote">${escapeHtml(trim(f.quote, 260))}</div>` : '';
     const link = f.url
-      ? ` <a href="${escapeHtml(f.url)}" target="_blank" rel="noopener">source</a>` : '';
+      ? ` <a class="link" href="${escapeHtml(f.url)}" target="_blank" rel="noopener">Source</a>`
+      : '';
     const fix = f.correction
-      ? `<div class="unstable">suggested: ${escapeHtml(f.correction)}</div>` : '';
-    return `<tr>
-      <td class="sev ${escapeHtml(f.severity)}">${escapeHtml(f.severity)}${unstable}</td>
-      <td class="loc">${escapeHtml(f.location || '—')}<div class="unstable">${escapeHtml(
-        f.source_pass || '')} · ${escapeHtml(f.category || '')}</div></td>
-      <td>${escapeHtml(f.description || '')}${link}${quote}${fix}</td>
-    </tr>`;
+      ? `<div class="fix">→ ${escapeHtml(f.correction)}</div>` : '';
+    return `<div class="finding">
+      <div class="head">
+        <span class="sev ${escapeHtml(f.severity)}">${escapeHtml(f.severity)}</span>
+        <span class="where">${escapeHtml(f.location || 'no location')}</span>
+      </div>
+      <div class="body">${escapeHtml(f.description || '')}${link}</div>
+      ${quote}${fix}
+      <div class="tagline">${escapeHtml(f.source_pass || '')} · ${escapeHtml(
+        f.category || '')}${escapeHtml(unstable)}</div>
+    </div>`;
   }).join('');
-  return `<table><thead><tr><th>Severity</th><th>Location</th><th>Finding</th></tr></thead>
-          <tbody>${rows}</tbody></table>`;
 }
 
 function filesList(data) {
-  if (!data.paper_slug && !data.run_dir) return '<p class="empty">No files.</p>';
   const names = data.files || ['pass0.json', 'pass1.json', 'pass2.json', 'pass3.json',
     'pass4.json', 'findings.csv', 'findings.json', 'synthesis.md', 'run.json',
     'extraction.json'];
   const slug = data.paper_slug || slugOf(data.paper);
-  const links = names.map((n) =>
-    `<a href="/api/history/${encodeURIComponent(slug)}/${encodeURIComponent(data.run_id)}` +
-    `/files/${encodeURIComponent(n)}" download>${escapeHtml(n)}</a>`).join('');
-  return `<p class="empty">Written to <code>${escapeHtml(data.run_dir || '')}</code></p>${links}`;
+  const rows = names.map((n) =>
+    `<a class="row tappable file-row" download
+        href="/api/history/${encodeURIComponent(slug)}/${encodeURIComponent(data.run_id)}` +
+    `/files/${encodeURIComponent(n)}">
+       <span class="name">${escapeHtml(n)}</span>
+       <span class="value">${CHEVRON}</span>
+     </a>`).join('');
+  const where = data.run_dir
+    ? `<div class="finding"><div class="tagline">${escapeHtml(data.run_dir)}</div></div>` : '';
+  return where + rows;
 }
 
 const slugOf = (name) => (name || 'paper').replace(/\.pdf$/i, '')
   .replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^[-.]+|[-.]+$/g, '') || 'paper';
 
-document.querySelectorAll('.tabs button').forEach((b) =>
-  b.addEventListener('click', () => selectTab(b.dataset.tab)));
+$('tabs').addEventListener('click', (e) => {
+  const button = e.target.closest('button[data-tab]');
+  if (button) selectTab(button.dataset.tab);
+});
 
 function selectTab(name) {
-  document.querySelectorAll('.tabs button').forEach((b) =>
+  document.querySelectorAll('#tabs button').forEach((b) =>
     b.classList.toggle('active', b.dataset.tab === name));
   for (const t of ['findings', 'report', 'files'])
     $(`tab-${t}`).classList.toggle('hide', t !== name);
@@ -371,26 +652,28 @@ async function loadHistory() {
   const box = $('history');
   try {
     const data = await (await fetch('/api/history')).json();
-    if (!data.runs.length) { box.className = 'empty'; box.textContent = 'No runs yet.'; return; }
+    if (!data.runs.length) {
+      box.className = 'empty'; box.textContent = 'No runs yet.'; return;
+    }
     box.className = '';
     box.innerHTML = data.runs.map((r) => {
-      const open = r.available
-        ? `<a data-paper="${escapeHtml(r.paper_slug)}" data-run="${escapeHtml(r.run_id)}">open</a>`
-        : '<span class="det">not stored</span>';
-      const usage = r.total_usage && r.total_usage.total_tokens
-        ? ` · ${r.total_usage.total_tokens} tok` : '';
-      return `<div class="history-row">
-        <span class="paper">${escapeHtml(r.paper || '')}</span>
-        <span class="det">${escapeHtml(r.started_at || '')}</span>
-        <span class="det">${escapeHtml(r.model || '')}${
-          r.quantization ? ' · ' + escapeHtml(r.quantization) : ''}</span>
-        <span class="det">seed ${escapeHtml(String(r.seed))} · v${escapeHtml(
-          String(r.prompt_version))} · ${escapeHtml(String(r.duration_s))}s${escapeHtml(usage)}</span>
-        ${open}
+      const when = (r.started_at || '').replace('T', ' ').replace(/\+.*$/, '');
+      const detail = [r.model, r.quantization, `seed ${r.seed}`,
+        r.duration_s ? `${r.duration_s}s` : ''].filter(Boolean).join(' · ');
+      const tail = r.available ? CHEVRON : '<span class="badge mono">not stored</span>';
+      const attrs = r.available
+        ? ` data-paper="${escapeHtml(r.paper_slug)}" data-run="${escapeHtml(r.run_id)}"`
+        : '';
+      return `<div class="row ${r.available ? 'tappable' : ''}"${attrs}>
+        <span class="label stack">
+          <span class="title">${escapeHtml(r.paper || '')}</span>
+          <span class="tagline">${escapeHtml(when)} · ${escapeHtml(detail)}</span>
+        </span>
+        <span class="value">${tail}</span>
       </div>`;
     }).join('');
-    box.querySelectorAll('a[data-run]').forEach((a) =>
-      a.addEventListener('click', () => openStored(a.dataset.paper, a.dataset.run)));
+    box.querySelectorAll('.row[data-run]').forEach((row) =>
+      row.addEventListener('click', () => openStored(row.dataset.paper, row.dataset.run)));
   } catch {
     box.className = 'empty';
     box.textContent = 'Could not read the run history.';
@@ -415,8 +698,8 @@ function escapeHtml(s) {
 const trim = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 
 /* Minimal Markdown: headings, tables, lists, blockquotes, code, emphasis.
-   The synthesis report is the only Markdown rendered here, and it is generated
-   by us, so a small renderer beats pulling in a library. */
+   The synthesis report is the only Markdown rendered here, and we generate it,
+   so a small renderer beats pulling in a library. */
 function markdown(src) {
   const lines = String(src).split('\n');
   const out = [];
@@ -431,7 +714,10 @@ function markdown(src) {
   while (i < lines.length) {
     const line = lines[i];
     const heading = line.match(/^(#{1,6})\s+(.*)$/);
-    if (heading) { out.push(`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`); i++; continue; }
+    if (heading) {
+      out.push(`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`);
+      i++; continue;
+    }
     if (/^\s*\|.*\|\s*$/.test(line) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) {
       const cells = (r) => r.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
       const head = cells(line);
@@ -460,7 +746,8 @@ function markdown(src) {
     }
     if (!line.trim()) { i++; continue; }
     const para = [];
-    while (i < lines.length && lines[i].trim() && !/^(#{1,6}\s|\s*[-*]\s|\s*>|\s*\|)/.test(lines[i]))
+    while (i < lines.length && lines[i].trim()
+           && !/^(#{1,6}\s|\s*[-*]\s|\s*>|\s*\|)/.test(lines[i]))
       para.push(inline(lines[i++]));
     out.push(`<p>${para.join(' ')}</p>`);
   }

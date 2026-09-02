@@ -86,10 +86,14 @@ It is a useful smoke test for a new endpoint or a new model: a model that cannot
 make ui
 ```
 
+The page follows the iOS design system — SF typography and the iOS type scale, system
+colours, grouped inset lists, a segmented control, and true-black dark mode — so it reads
+like a native app in the browser rather than a form.
+
 `scieval serve` opens a local page on <http://localhost:8000>: drop a PDF on it, pick a
 model and how many repeats, and watch the passes run — progress streams from the server as
 each call is made, so you can see which section Pass 1 is on. When the run finishes the page
-shows the findings table (severity, location, pass, category, the quote as evidence), the
+shows the findings as a list (severity, location, pass, category, the quote as evidence), the
 rendered report, and download links for every artifact. Previous runs are listed underneath
 with their model, quantization, seed and prompt version; opening one loads it back without
 re-running anything.
