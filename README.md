@@ -117,6 +117,21 @@ falls back to `json_object` and then to plain text, parsing the JSON out of fenc
 error. If all of that fails, the pass is recorded as failed in `run.json` and the run
 continues. Which route each call took is in `run.json` under `calls[].mode`.
 
+## Choosing a local model
+
+Reasoning models (the ones that emit a `<think>` block) work, and their think blocks are
+stripped before parsing, but they are slow here: a review makes at least eleven calls, and
+a 9B reasoning model can spend several minutes on each one. For routine runs prefer an
+instruct model of similar size, and reserve a reasoning model for Pass 2, which is the pass
+that actually has to do arithmetic:
+
+```bash
+uv run scieval review paper.pdf --model qwen/qwen3-4b-2507 --model-pass pass2=qwen/qwen3.5-9b
+```
+
+`request_timeout_s` in `scieval.toml` (default 900) caps each call. Raise it for a large
+model on modest hardware.
+
 ## Determinism and provenance
 
 Temperature defaults to 0 and a seed is sent with every call (`--seed`, default 42).

@@ -100,3 +100,21 @@ def test_detect_sections_falls_back_to_whole_document(paper):
 
 def test_extract_references_handles_missing_section():
     assert extract_references([]) == []
+
+
+def test_a_pdf_without_a_text_layer_is_rejected(tmp_path):
+    """A scan produces no text; the user needs to be told to run OCR, not given
+    an empty review."""
+    import pymupdf
+    import pytest
+
+    from scieval.extract.pdf import NoTextError, extract_document
+
+    path = tmp_path / "scan.pdf"
+    document = pymupdf.open()
+    document.new_page()
+    document.save(path)
+    document.close()
+
+    with pytest.raises(NoTextError, match="probably a scan"):
+        extract_document(path)

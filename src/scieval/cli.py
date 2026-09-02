@@ -15,6 +15,7 @@ from rich.table import Table
 from . import __version__
 from .calibrate import GroundTruthError, TEMPLATE, render_markdown, run_calibration, write_csv
 from .config import Config, ConfigError, load_config
+from .extract.pdf import NoTextError
 from .llm.client import LLMClient, LLMError
 from .pipeline import ALL_PASSES, build_paper_context, run_review
 from .report import write_json
@@ -121,6 +122,8 @@ def review(
         result = run_review(
             paper, config, repeats=repeats, only=selected, quantization=quantization, emit=emit
         )
+    except NoTextError as exc:
+        _fail(str(exc), 2)
     except LLMError as exc:
         _fail(f"{exc}\nIs the server running at {config.provider.base_url}?")
     except ConfigError as exc:
@@ -282,7 +285,10 @@ def extract(
 ) -> None:
     """Run extraction only. No model calls, so this works with the server offline."""
     config = _config(config_path)
-    paper_context = build_paper_context(paper, config)
+    try:
+        paper_context = build_paper_context(paper, config)
+    except NoTextError as exc:
+        _fail(str(exc), 2)
 
     if json_out:
         from .pipeline import extraction_summary

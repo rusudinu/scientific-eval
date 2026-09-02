@@ -24,6 +24,10 @@ class Line:
         return len(self.text) <= 120
 
 
+class NoTextError(RuntimeError):
+    """Raised for a PDF with no extractable text layer, e.g. a scan."""
+
+
 @dataclass
 class Document:
     path: Path
@@ -36,6 +40,9 @@ class Document:
     def text(self) -> str:
         return lines_to_text(self.lines)
 
+
+# Below this, the PDF carries no usable text layer.
+MIN_TEXT_CHARS = 200
 
 _WS = re.compile(r"[ \t]+")
 # Ligatures and typographic characters pymupdf hands back verbatim.
@@ -88,6 +95,13 @@ def extract_document(path: Path) -> Document:
         page_count = doc.page_count
     finally:
         doc.close()
+
+    if sum(len(line.text) for line in lines) < MIN_TEXT_CHARS:
+        raise NoTextError(
+            f"{path.name} has almost no extractable text ({page_count} pages). It is probably a "
+            f"scan; run OCR on it first (for example `ocrmypdf in.pdf out.pdf`) and review the "
+            f"OCR'd file."
+        )
 
     body_size = median(sizes) if sizes else 10.0
     return Document(

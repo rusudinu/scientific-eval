@@ -158,3 +158,17 @@ def test_calibrate_reuse_uses_the_stored_run(paper_pdf, tmp_path, fake_client):
     settings = json.loads((folder / "calibration.json").read_text())["settings"]
     assert settings["model"] == "fake-model"
     assert settings["quantization"] == "Q4_K_M"
+
+
+def test_review_of_a_scanned_pdf_suggests_ocr(tmp_path):
+    import pymupdf
+
+    path = tmp_path / "scan.pdf"
+    document = pymupdf.open()
+    document.new_page()
+    document.save(path)
+    document.close()
+
+    result = runner.invoke(app, ["extract", str(path)])
+    assert result.exit_code == 2
+    assert "ocrmypdf" in result.output
