@@ -90,7 +90,7 @@ def compute_candidates(paper: PaperContext, config: Config, language: str) -> No
     backend = build_backend(config.spellcheck.backend, language)
     allowlist = collect_allowlist(paper.references, paper.document.text)
     paper.candidates = {
-        section.label: candidates_for_section(
+        section.index: candidates_for_section(
             section,
             backend,
             allowlist,
@@ -153,7 +153,11 @@ def run_review(
             paper.language = inventory.language or paper.language
             pass_outputs["pass0"] = inventory.model_dump(mode="json")
             provenance.passes_run.append("pass0")
-            _resplit(paper, config, say)
+            resplit = _resplit(paper, config, say)
+            if not resplit:
+                # The split did not change, but the language did: the candidates were
+                # generated with the default dictionary before Pass 0 reported one.
+                compute_candidates(paper, config, paper.language)
         else:
             say("pass0 produced no inventory; later passes use heuristic extraction only")
 
@@ -253,16 +257,19 @@ def run_review(
     )
 
 
-def _resplit(paper: PaperContext, config: Config, say: Emit) -> None:
-    """Re-split the document using the section list Pass 0 reported."""
+def _resplit(paper: PaperContext, config: Config, say: Emit) -> bool:
+    """Re-split the document using the section list Pass 0 reported.
+
+    Returns True when the split was replaced (and candidates recomputed with it).
+    """
     if not paper.inventory or not paper.inventory.sections:
-        return
+        return False
     inventory_sections = [s.model_dump() for s in paper.inventory.sections]
     resplit = resplit_with_inventory(paper.document, inventory_sections)
     if len(resplit) < len(paper.sections):
         # The inventory anchored fewer sections than the heuristics found; keep the split
         # that covers more of the paper.
-        return
+        return False
     say(f"re-split into {len(resplit)} sections using the Pass 0 inventory")
     paper.sections = resplit
     paper.references = extract_references(resplit)
@@ -270,6 +277,7 @@ def _resplit(paper: PaperContext, config: Config, say: Emit) -> None:
     paper.captions = extract_captions(paper.document, resplit)
     paper.tables_text = tables_text(paper.document, paper.captions)
     compute_candidates(paper, config, paper.language)
+    return True
 
 
 def extraction_summary(paper: PaperContext) -> dict[str, Any]:
@@ -282,8 +290,9 @@ def extraction_summary(paper: PaperContext) -> dict[str, Any]:
         "captions": [c.as_dict() for c in paper.captions],
         "references": [r.as_dict() for r in paper.references],
         "spellcheck_candidates": {
-            label: [c.as_dict() for c in candidates]
-            for label, candidates in paper.candidates.items()
+            section.label: [c.as_dict() for c in paper.candidates_for(section)]
+            for section in paper.sections
+            if paper.candidates_for(section)
         },
     }
 

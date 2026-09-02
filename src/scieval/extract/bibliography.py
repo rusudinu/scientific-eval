@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 
 from .sections import Section
+from .text import split_sentences
 
 DOI = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+\b")
 YEAR = re.compile(r"\b(19|20)\d{2}[a-z]?\b")
@@ -13,7 +14,6 @@ NUMBERED_ENTRY = re.compile(r"^\s*(?:\[(\d{1,3})\]|(\d{1,3})[.)])\s+(?=\S)")
 # In-text numeric citations: [3], [3, 5], [3-7], [3], [4]
 NUMERIC_CITATION = re.compile(r"\[(\d{1,3}(?:\s*[-,;]\s*\d{1,3})*)\]")
 AUTHOR_YEAR = re.compile(r"\(?\b([A-Z][A-Za-z'\-]+)(?:\s+et\s+al\.?|\s+(?:and|&)\s+[A-Z][A-Za-z'\-]+)?,?\s*\(?((?:19|20)\d{2})[a-z]?\)?")
-SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z\[(])")
 
 
 @dataclass
@@ -201,5 +201,4 @@ def _add_sentence(ref: Reference, sentence: str, location: str, limit: int = 4) 
 
 
 def _sentences(text: str) -> list[str]:
-    flat = re.sub(r"\s*\n\s*", " ", text)
-    return [s.strip() for s in SENTENCE_SPLIT.split(flat) if s.strip()]
+    return split_sentences(text)

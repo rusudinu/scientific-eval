@@ -13,7 +13,7 @@ from .matcher import MatchResult
 
 PAPER_COLUMNS = [
     "paper", "run_id", "truth_findings", "model_findings", "matched", "missed", "spurious",
-    "precision", "recall", "f1", "severity_agreement",
+    "precision", "recall", "f1", "severity_agreement", "error",
 ]
 
 
@@ -87,6 +87,7 @@ class PaperReport:
             "recall": round(scores.recall, 3),
             "f1": round(scores.f1, 3),
             "severity_agreement": round(self.severity_agreement, 3),
+            "error": self.error,
         }
 
 
@@ -109,22 +110,33 @@ class CalibrationReport:
             "by_category": {k: v.as_dict() for k, v in sorted(self.by_category.items())},
             "by_pass": {k: v.as_dict() for k, v in sorted(self.by_pass.items())},
             "papers": [p.row() for p in self.papers],
+            "failed_papers": [
+                {"paper": p.paper, "error": p.error} for p in self.papers if p.error
+            ],
             "missed_findings": [
                 {"paper": p.paper, **f.model_dump(mode="json")}
                 for p in self.papers
+                if not p.error
                 for f in p.result.missed
             ],
             "spurious_findings": [
                 {"paper": p.paper, **f.model_dump(mode="json")}
                 for p in self.papers
+                if not p.error
                 for f in p.result.spurious
             ],
         }
 
 
 def aggregate(papers: list[PaperReport], settings: dict[str, Any]) -> CalibrationReport:
-    """Overall and per-dimension scores across every calibrated paper."""
+    """Overall and per-dimension scores across every calibrated paper.
+
+    A paper whose run failed is excluded from the scores: counting its findings as
+    misses would silently depress recall for a reason that has nothing to do with
+    the model's judgement.
+    """
     report = CalibrationReport(papers=papers, settings=settings)
+    papers = [p for p in papers if not p.error]
     by_severity: dict[str, Scores] = defaultdict(Scores)
     by_category: dict[str, Scores] = defaultdict(Scores)
     by_pass: dict[str, Scores] = defaultdict(Scores)
@@ -202,18 +214,29 @@ def render_markdown(report: CalibrationReport) -> str:
     ]
     for paper in report.papers:
         row = paper.row()
+        if paper.error:
+            lines.append(
+                f"| {row['paper']} | {row['truth_findings']} | - | - | - | - | - | - | - |"
+            )
+            continue
         lines.append(
             f"| {row['paper']} | {row['truth_findings']} | {row['model_findings']} | "
             f"{row['matched']} | {row['missed']} | {row['spurious']} | "
             f"{row['precision']:.2f} | {row['recall']:.2f} | {row['f1']:.2f} |"
         )
 
+    failed = [p for p in report.papers if p.error]
+    if failed:
+        lines += ["", "### Papers excluded because the run failed", ""]
+        lines += [f"- {p.paper}: {p.error}" for p in failed]
+
     lines += _score_table("Per severity", report.by_severity)
     lines += _score_table("Per category", report.by_category)
     lines += _score_table("Per pass (precision only; human reviews are not pass-labelled)",
                           report.by_pass)
 
-    missed = [(p.paper, f) for p in report.papers for f in p.result.missed]
+    scored = [p for p in report.papers if not p.error]
+    missed = [(p.paper, f) for p in scored for f in p.result.missed]
     lines += ["", "## Findings the model missed", ""]
     if missed:
         for paper_name, finding in missed[:60]:
@@ -227,7 +250,7 @@ def render_markdown(report: CalibrationReport) -> str:
     else:
         lines.append("- None.")
 
-    spurious = [(p.paper, f) for p in report.papers for f in p.result.spurious]
+    spurious = [(p.paper, f) for p in scored for f in p.result.spurious]
     lines += ["", "## Findings the model reported that the human review does not have", ""]
     if spurious:
         for paper_name, finding in spurious[:60]:

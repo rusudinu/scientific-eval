@@ -118,3 +118,45 @@ def test_a_pdf_without_a_text_layer_is_rejected(tmp_path):
 
     with pytest.raises(NoTextError, match="probably a scan"):
         extract_document(path)
+
+
+def test_author_year_citation_survives_sentence_splitting():
+    """'Smith et al. (2018)' must stay one sentence or the citation never maps."""
+    from scieval.extract.text import split_sentences
+
+    sentences = split_sentences("Smith et al. (2018) showed this. It holds.")
+    assert sentences[0] == "Smith et al. (2018) showed this."
+    assert len(sentences) == 2
+
+
+def test_author_year_references_are_mapped_to_citing_sentences(tmp_path):
+    import pymupdf
+
+    from scieval.config import load_config
+    from scieval.pipeline import build_paper_context
+
+    path = tmp_path / "author-year.pdf"
+    document = pymupdf.open()
+    page = document.new_page()
+    y = 72
+    for line in [
+        "A Study of Caching",
+        "1 Introduction",
+        "Static sizing wastes memory. Smith et al. (2018) showed that cache",
+        "sizing matters for tail latency in production systems.",
+        "2 Method",
+        "We follow the protocol described in that work and extend it here.",
+        "References",
+        "Smith, J. and Larsen, K. (2018). Static cache sizing considered",
+        "harmful. Proceedings of the Symposium on Operating Systems.",
+    ]:
+        page.insert_text((72, y), line, fontsize=11)
+        y += 16
+    document.save(path)
+    document.close()
+
+    paper = build_paper_context(path, load_config())
+    assert paper.references, "the reference section was not parsed"
+    assert any(r.citing_sentences for r in paper.references), (
+        "an author-year citation was not mapped to any sentence"
+    )

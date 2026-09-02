@@ -172,3 +172,32 @@ def test_report_files_render(tmp_path):
     payload = report.as_dict()
     assert payload["overall"]["precision"] == 1.0
     assert payload["papers"][0]["paper"] == "p.pdf"
+
+
+def test_a_failed_paper_is_excluded_from_the_scores_and_named():
+    """A paper the pipeline could not run must not look like a model that found nothing."""
+    from scieval.calibrate.matcher import MatchResult
+
+    good = PaperReport(
+        paper="good.pdf", run_id="r1",
+        result=match_findings(
+            [_finding("quote one exactly here", "First issue.")],
+            [_finding("quote one exactly here", "First issue.")],
+        ),
+        truth_count=1, predicted_count=1,
+    )
+    broken = PaperReport(
+        paper="scan.pdf", run_id="",
+        result=MatchResult(matches=[], missed=[_finding("a", "b"), _finding("c", "d")],
+                           spurious=[]),
+        truth_count=2, predicted_count=0,
+        error="scan.pdf has almost no extractable text",
+    )
+    report = aggregate([good, broken], {"threshold": 70.0})
+
+    assert report.overall.false_negatives == 0
+    assert report.overall.recall == pytest.approx(1.0)
+    markdown = render_markdown(report)
+    assert "Papers excluded because the run failed" in markdown
+    assert "scan.pdf" in markdown
+    assert report.as_dict()["failed_papers"][0]["paper"] == "scan.pdf"

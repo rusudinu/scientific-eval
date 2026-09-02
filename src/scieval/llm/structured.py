@@ -107,10 +107,16 @@ def extract_json(text: str) -> str:
     if fenced:
         cleaned = fenced.group(1).strip()
     start = cleaned.find("{")
-    end = cleaned.rfind("}")
-    if start != -1 and end > start:
-        return cleaned[start : end + 1]
-    return cleaned
+    if start == -1:
+        return cleaned
+    # Decode from the first brace so trailing commentary (which may itself contain
+    # braces) does not turn a good reply into a parse error and a wasted repair turn.
+    try:
+        _, end = json.JSONDecoder().raw_decode(cleaned[start:])
+        return cleaned[start : start + end]
+    except json.JSONDecodeError:
+        last = cleaned.rfind("}")
+        return cleaned[start : last + 1] if last > start else cleaned
 
 
 def _parse(text: str, schema: type[T]) -> tuple[T | None, str]:

@@ -41,10 +41,17 @@ class PySpellcheckerBackend:
     def unknown(self, tokens: list[str]) -> set[str]:
         if not tokens:
             return set()
-        # pyspellchecker lowercases internally; keep the original casing for reporting.
-        lowered = {t.lower(): t for t in tokens}
-        unknown_lower = self._checker.unknown(list(lowered))
-        return {lowered[t] for t in unknown_lower if t in lowered}
+        # pyspellchecker lowercases internally. Map each lowered form back to every
+        # original casing, so "Recieve" and "recieve" are both returned.
+        by_lowered: dict[str, set[str]] = {}
+        for token in tokens:
+            by_lowered.setdefault(token.lower(), set()).add(token)
+        unknown_lower = self._checker.unknown(list(by_lowered))
+        return {
+            original
+            for lowered in unknown_lower
+            for original in by_lowered.get(lowered, set())
+        }
 
     def correction(self, token: str) -> str | None:
         result = self._checker.correction(token.lower())

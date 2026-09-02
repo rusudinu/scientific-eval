@@ -21,9 +21,12 @@ def run(runner: PassRunner, paper: PaperContext) -> Pass0Output | None:
 def _build_payload(runner: PassRunner, paper: PaperContext) -> str:
     limit = runner.config.limits.pass0_max_chars
     full_text = paper.document.text
-    hints = _extraction_hints(paper)
+    # The hints share the budget with the text: `pass0_max_chars` is what the user
+    # set against their context window, so it has to bound the whole payload.
+    hints = _extraction_hints(paper, limit // 4)
+    remaining = max(limit - len(hints), limit // 4)
 
-    if len(full_text) <= limit:
+    if len(full_text) <= remaining:
         return f"{hints}\n\n=== FULL PAPER TEXT ===\n{full_text}"
 
     # Too long: front matter + headings + captions + bibliography, as the prompt allows.
@@ -36,7 +39,7 @@ def _build_payload(runner: PassRunner, paper: PaperContext) -> str:
     tail = clip(
         f"=== FRONT MATTER ===\n{front}\n\n=== SECTION HEADINGS ===\n{headings}\n\n"
         f"=== CAPTIONS ===\n{captions}\n\n=== BIBLIOGRAPHY ===\n{bibliography}",
-        limit,
+        remaining,
     )
     note = (
         "NOTE: the paper exceeded the input budget, so you are given the front matter, "
@@ -46,7 +49,7 @@ def _build_payload(runner: PassRunner, paper: PaperContext) -> str:
     return f"{note}\n\n{hints}\n\n{tail}"
 
 
-def _extraction_hints(paper: PaperContext) -> str:
+def _extraction_hints(paper: PaperContext, limit: int) -> str:
     """Deterministic extraction results, given to the model as a starting point."""
     return (
         "=== EXTRACTION HINTS (from the PDF, deterministic) ===\n"
@@ -61,7 +64,7 @@ def _extraction_hints(paper: PaperContext) -> str:
                     {"index": r.index, "raw": r.raw[:400]} for r in paper.references
                 ],
             },
-            limit=40000,
+            limit=limit,
         )
         + "\nThese hints come from layout heuristics and may be wrong or incomplete. "
         "Correct them from the text where they disagree."

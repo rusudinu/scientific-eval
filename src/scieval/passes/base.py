@@ -46,15 +46,14 @@ class PaperContext:
     references: list[Reference]
     captions: list[Caption]
     tables_text: str = ""
-    candidates: dict[str, list[Candidate]] = field(default_factory=dict)
+    # Keyed by section index: two sections can share a label (e.g. two "Appendix"
+    # headings) and would otherwise overwrite each other's candidates.
+    candidates: dict[int, list[Candidate]] = field(default_factory=dict)
     inventory: Pass0Output | None = None
     language: str = "en"
 
-    def section_by_label(self, label: str) -> Section | None:
-        for section in self.sections:
-            if section.label == label:
-                return section
-        return None
+    def candidates_for(self, section: Section) -> list[Candidate]:
+        return self.candidates.get(section.index, [])
 
     def reviewable_sections(self) -> list[Section]:
         """Sections worth sending to Pass 1: skip references and boilerplate."""

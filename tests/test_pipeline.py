@@ -161,3 +161,40 @@ def test_reference_lookup_results_reach_pass3(paper_pdf, config, fake_client, tm
 def test_latest_pointer_tracks_the_newest_run(run):
     pointer = (run.run_dir.parent / "latest.txt").read_text().strip()
     assert pointer == run.run_dir.name
+
+
+def test_spellcheck_uses_the_language_pass0_reports(paper_pdf, config, fake_client, tmp_path,
+                                                     monkeypatch):
+    """The candidates are built before Pass 0 runs, so they must be rebuilt after it."""
+    languages: list[str] = []
+    original = pipeline.compute_candidates
+
+    def record(paper, cfg, language):
+        languages.append(language)
+        return original(paper, cfg, language)
+
+    monkeypatch.setattr(pipeline, "compute_candidates", record)
+    config.output_dir = tmp_path / "out-language"
+    pipeline.run_review(paper_pdf, config, only=("pass0", "pass1"))
+
+    # First with the default, then again with the variant Pass 0 detected.
+    assert languages[0] == "en"
+    assert languages[-1] == "en-GB"
+
+
+def test_candidates_survive_two_sections_with_the_same_title(paper, config):
+    """Two 'Appendix' headings must not share one candidate list."""
+    from scieval.extract.sections import Section
+
+    paper.sections = paper.sections + [
+        Section(index=90, number="", title="Appendix", start_page=3, end_page=3,
+                text="This sectoin contains a mistake. " * 12),
+        Section(index=91, number="", title="Appendix", start_page=4, end_page=4,
+                text="Another paragraf with a different mistake. " * 12),
+    ]
+    pipeline.compute_candidates(paper, config, "en")
+
+    first = {c.token for c in paper.candidates_for(paper.sections[-2])}
+    second = {c.token for c in paper.candidates_for(paper.sections[-1])}
+    assert "sectoin" in first and "sectoin" not in second
+    assert "paragraf" in second and "paragraf" not in first

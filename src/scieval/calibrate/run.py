@@ -61,10 +61,13 @@ def run_calibration(
                 error=error,
             )
         )
-        say(
-            f"  {pdf.name}: {len(result.matches)} matched, {len(result.missed)} missed, "
-            f"{len(result.spurious)} spurious"
-        )
+        if error:
+            say(f"  {pdf.name}: run failed, excluded from the scores: {error}")
+        else:
+            say(
+                f"  {pdf.name}: {len(result.matches)} matched, {len(result.missed)} missed, "
+                f"{len(result.spurious)} spurious"
+            )
 
     return aggregate(reports, settings)
 

@@ -91,3 +91,11 @@ def test_max_candidates_is_respected():
 def test_unknown_backend_name_degrades_to_null():
     backend = build_backend("does-not-exist", "en")
     assert backend.unknown(["allready"]) == set()
+
+
+def test_both_casings_of_a_misspelling_are_reported():
+    """A lowercase and a capitalised occurrence must not collide into one."""
+    from scieval.spellcheck.backend import PySpellcheckerBackend
+
+    backend = PySpellcheckerBackend("en")
+    assert backend.unknown(["Recieve", "recieve"]) == {"Recieve", "recieve"}

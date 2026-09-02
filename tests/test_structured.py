@@ -227,3 +227,9 @@ def test_resolve_model_errors_when_only_embeddings_are_loaded():
     client = LLMClient(load_config(), http_client=_sdk_client(handler))
     with pytest.raises(ConfigError, match="only embedding models"):
         client.resolve_model(None)
+
+
+def test_extract_json_stops_at_the_end_of_the_object():
+    """Trailing commentary containing braces must not break the parse."""
+    text = '{"section": "1 Introduction", "findings": []} Note that {} means no findings.'
+    assert json.loads(extract_json(text)) == {"section": "1 Introduction", "findings": []}

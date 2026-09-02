@@ -17,7 +17,9 @@ from .base import PaperContext, PassRunner, as_json, clip, load_prompt
 
 def run(runner: PassRunner, paper: PaperContext, lookup: ReferenceLookup) -> Pass3Output:
     references = paper.references
-    available = bool(getattr(lookup, "available", False)) and bool(references)
+    # `search_tool_available` describes the tool, not the paper: a run with a working
+    # lookup but no parsed bibliography must not read as an offline run.
+    available = bool(getattr(lookup, "available", False))
     output = Pass3Output(search_tool_available=available)
 
     if not references:

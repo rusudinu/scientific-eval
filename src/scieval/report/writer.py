@@ -134,8 +134,10 @@ def fallback_report(
         lines.append("| - | - | No findings were reported. | - |")
 
     lines += ["", "## 3. Reference audit", ""]
-    pass3 = pass_outputs.get("pass3") or {}
-    references = pass3.get("references") or []
+    references = [
+        ref for entry in _flatten(pass_outputs.get("pass3"))
+        for ref in entry.get("references", [])
+    ]
     icons = {
         "verified": "OK", "metadata_mismatch": "MISMATCH", "not_found": "NOT FOUND",
         "retracted": "RETRACTED", "could_not_verify": "UNVERIFIED",
@@ -152,7 +154,8 @@ def fallback_report(
     inconsistencies = [f for f in findings if f.category == "language"]
     lines.append(f"- Confirmed typos: {len(typos)}")
     lines.append(f"- Language and consistency findings: {len(inconsistencies)}")
-    language = (pass_outputs.get("pass0") or {}).get("language", "unknown")
+    pass0_entries = _flatten(pass_outputs.get("pass0"))
+    language = pass0_entries[0].get("language", "unknown") if pass0_entries else "unknown"
     lines.append(f"- Language variant reported by Pass 0: {language}")
 
     lines += ["", "## 5. Unverifiable items", ""]
@@ -167,9 +170,8 @@ def fallback_report(
     lines.append(f"- Search tool available: {provenance.search_tool_available}")
     lines.append(f"- Model: {provenance.model} ({provenance.quantization}) via {provenance.provider}")
     lines.append(f"- Prompt version: {provenance.prompt_version}, seed {provenance.seed}")
-    for name, output in pass_outputs.items():
-        for limitation in (output or {}).get("limitations", []) if isinstance(output, dict) else []:
-            lines.append(f"- {name} limitation: {limitation}")
+    for name, limitation in _limitations(pass_outputs):
+        lines.append(f"- {name} limitation: {limitation}")
     if provenance.errors:
         for error in provenance.errors:
             lines.append(f"- error: {error}")
@@ -192,15 +194,40 @@ def _verdict_line(findings: list[Finding]) -> str:
     return f"No critical or major findings. {len(findings)} findings in total, all minor."
 
 
+def _flatten(output: Any) -> list[dict]:
+    """Normalise a stored pass output into a list of pass-output dicts.
+
+    A pass run once is stored as its own object (or a list, for the per-section
+    Pass 1); repeated runs are stored as {"runs": [...]}. Readers need both.
+    """
+    if isinstance(output, dict):
+        runs = output.get("runs")
+        if isinstance(runs, list):
+            return [item for run in runs for item in _flatten(run)]
+        return [output]
+    if isinstance(output, list):
+        return [item for entry in output for item in _flatten(entry)]
+    return []
+
+
+def _limitations(pass_outputs: dict[str, Any]) -> list[tuple[str, str]]:
+    return [
+        (name, limitation)
+        for name, output in pass_outputs.items()
+        for entry in _flatten(output)
+        for limitation in entry.get("limitations", [])
+    ]
+
+
 def _unverifiable(pass_outputs: dict[str, Any]) -> list[str]:
     items: list[str] = []
-    pass2 = pass_outputs.get("pass2") or {}
-    for check in pass2.get("number_checks", []) if isinstance(pass2, dict) else []:
-        if check.get("verdict") == "could_not_verify":
-            items.append(f"Pass 2 number check: {check.get('quantity', '')}")
-    pass3 = pass_outputs.get("pass3") or {}
+    for entry in _flatten(pass_outputs.get("pass2")):
+        for check in entry.get("number_checks", []):
+            if check.get("verdict") == "could_not_verify":
+                items.append(f"Pass 2 number check: {check.get('quantity', '')}")
     unverified = [
-        r for r in (pass3.get("references", []) if isinstance(pass3, dict) else [])
+        r for entry in _flatten(pass_outputs.get("pass3"))
+        for r in entry.get("references", [])
         if r.get("status") == "could_not_verify"
     ]
     if unverified:
@@ -208,9 +235,9 @@ def _unverifiable(pass_outputs: dict[str, Any]) -> list[str]:
             f"Pass 3: {len(unverified)} bibliography entries could not be verified; "
             "search each title and DOI by hand."
         )
-    pass4 = pass_outputs.get("pass4") or {}
     unchecked = [
-        c for c in (pass4.get("fact_checks", []) if isinstance(pass4, dict) else [])
+        c for entry in _flatten(pass_outputs.get("pass4"))
+        for c in entry.get("fact_checks", [])
         if c.get("verdict") == "could_not_verify"
     ]
     if unchecked:

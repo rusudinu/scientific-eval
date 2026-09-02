@@ -26,7 +26,10 @@ def _payload(runner: PassRunner, paper: PaperContext) -> str:
         # Heading detection found nothing usable; fall back to the second half of the paper,
         # where results and conclusions live.
         text = paper.document.text
-        wanted_text = f"=== PAPER TEXT (second half; section split unavailable) ===\n{text[len(text)//2:]}"
+        wanted_text = (
+            "=== PAPER TEXT (second half; section split unavailable) ===\n"
+            + clip(text[len(text) // 2 :], budget * 2)
+        )
         missing_note = (
             "NOTE: the abstract/results/discussion/conclusion sections could not be identified. "
             "Record this in `limitations`."

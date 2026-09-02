@@ -231,6 +231,9 @@ def calibrate(
     table.add_column("F1", justify="right")
     for paper in report.papers:
         row = paper.row()
+        if paper.error:
+            table.add_row(f"[red]{row['paper']}[/red]", "failed", "-", "-", "-", "-", "-")
+            continue
         table.add_row(
             row["paper"], str(row["matched"]), str(row["missed"]), str(row["spurious"]),
             f"{row['precision']:.2f}", f"{row['recall']:.2f}", f"{row['f1']:.2f}",
@@ -311,7 +314,7 @@ def extract(
                 section.kind,
                 f"{section.start_page}-{section.end_page}",
                 str(len(section.text)),
-                str(len(paper_context.candidates.get(section.label, []))),
+                str(len(paper_context.candidates_for(section))),
             )
         console.print(table)
     elif show == "references":
@@ -327,10 +330,11 @@ def extract(
             mark = "referenced" if caption.referenced_in_text else "NOT referenced"
             console.print(f"[bold]{caption.id}[/bold] (p.{caption.page}, {mark}) {caption.caption[:120]}")
     elif show == "candidates":
-        for label, candidates in paper_context.candidates.items():
+        for section in paper_context.sections:
+            candidates = paper_context.candidates_for(section)
             if not candidates:
                 continue
-            console.print(f"[bold]{label}[/bold]: {len(candidates)}")
+            console.print(f"[bold]{section.label}[/bold]: {len(candidates)}")
             console.print("  " + ", ".join(c.token for c in candidates[:40]))
     elif show == "text":
         sys.stdout.write(paper_context.document.text)

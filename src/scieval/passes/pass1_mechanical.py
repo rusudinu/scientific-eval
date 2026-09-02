@@ -13,7 +13,7 @@ def run(runner: PassRunner, paper: PaperContext) -> list[Pass1Output]:
     outputs: list[Pass1Output] = []
 
     for section in paper.reviewable_sections():
-        candidates = paper.candidates.get(section.label, [])
+        candidates = paper.candidates_for(section)
         payload = _section_payload(runner, paper, section, candidates, inventory_digest)
         output = runner.structured(
             pass_name="pass1",

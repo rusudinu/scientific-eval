@@ -203,3 +203,39 @@ def test_fallback_report_covers_all_six_sections():
 def test_slugify_makes_a_safe_directory_name():
     assert slugify("A Paper: Draft (v2).pdf") == "A-Paper-Draft-v2-.pdf"
     assert slugify("...") == "paper"
+
+
+def test_same_quote_in_two_sections_is_two_findings():
+    """Pass 1 quotes a bare token, so location has to separate the occurrences."""
+    a = _finding("teh", category="spelling", location="1 Introduction (p. 1)")
+    b = _finding("teh", category="spelling", location="4 Results (p. 6)")
+    assert len(dedupe([a, b])) == 2
+    merged = merge_runs([[a], [b]])
+    assert len(merged) == 2
+    assert all(f.stability is Stability.unstable for f in merged)
+
+
+def test_fallback_report_reads_repeated_run_outputs():
+    """With --repeats the pass outputs are stored as {"runs": [...]}."""
+    provenance = RunProvenance(
+        run_id="r", paper="p.pdf", paper_sha256="abc", provider="lmstudio", base_url="http://x",
+        model="m", quantization="Q4", model_info={}, prompt_version="1.0.0", prompt_hashes={},
+        seed=42, temperature=0.0, repeats=2, reference_provider="crossref",
+        web_search_provider="none", search_tool_available=True, started_at="now",
+    )
+    report = fallback_report(
+        [],
+        provenance,
+        {
+            "pass0": {"language": "en-GB", "limitations": []},
+            "pass1": {"runs": [[{"section": "1", "limitations": ["pass1 could not read table"]}]]},
+            "pass2": {"runs": [{
+                "limitations": ["pass2 limitation text"],
+                "number_checks": [{"quantity": "sample size", "verdict": "could_not_verify"}],
+            }]},
+        },
+    )
+    assert "pass1 could not read table" in report
+    assert "pass2 limitation text" in report
+    assert "sample size" in report
+    assert "en-GB" in report

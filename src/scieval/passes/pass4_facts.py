@@ -32,6 +32,7 @@ def run(runner: PassRunner, paper: PaperContext, web: WebSearchProvider) -> Pass
         return _no_tool_output(claims)
 
     searched, main_results = _search(web, claims, runner.config.search.max_results_per_query)
+    dropped = len(claims.claims) - len(searched)
     result = runner.structured(
         pass_name="pass4",
         label="pass4:verify",
@@ -58,6 +59,11 @@ def run(runner: PassRunner, paper: PaperContext, web: WebSearchProvider) -> Pass
 
     result.search_tool_available = True
     _drop_unsupplied_urls(result, searched, main_results)
+    if dropped > 0:
+        result.limitations.append(
+            f"{dropped} extracted claims beyond the first {MAX_SEARCHED_CLAIMS} were not "
+            f"searched and remain unchecked."
+        )
     return result
 
 

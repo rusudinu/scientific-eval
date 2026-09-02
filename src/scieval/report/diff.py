@@ -234,6 +234,10 @@ def _match_index(pool: list[Finding], finding: Finding) -> int | None:
             return i
         if other[0] != key[0]:
             continue
+        # The same short quote in two sections is two issues, not one. Pass 1 often
+        # reports a bare token as the quote, so location has to agree too.
+        if other[1] != key[1]:
+            continue
         if not key[2] or not other[2]:
             continue
         if fuzz.ratio(other[2], key[2]) >= QUOTE_MATCH_THRESHOLD:

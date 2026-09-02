@@ -7,10 +7,10 @@ from dataclasses import dataclass
 
 from ..extract.bibliography import Reference
 from ..extract.sections import Section
+from ..extract.text import split_sentences
 from .backend import SpellBackend
 
 TOKEN = re.compile(r"[A-Za-z][A-Za-z'\u2019\-]*")
-SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z\[(])")
 LATEX = re.compile(r"\\[A-Za-z]+|\$[^$]*\$")
 URL = re.compile(r"https?://\S+|www\.\S+|\b10\.\d{4,9}/\S+")
 HAS_DIGIT_OR_UNDERSCORE = re.compile(r"[\d_]")
@@ -147,8 +147,7 @@ def _is_checkable(token: str, raw: str, allowlist: set[str], min_length: int) ->
 
 
 def _sentences(text: str) -> list[str]:
-    flat = re.sub(r"\s*\n\s*", " ", text)
-    return [s.strip() for s in SENTENCE_SPLIT.split(flat) if s.strip()]
+    return split_sentences(text)
 
 
 def _trim(sentence: str, limit: int = 300) -> str:
