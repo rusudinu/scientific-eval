@@ -102,7 +102,7 @@ def _promoted_number_checks(output: Pass2Output, existing: list[Finding]) -> lis
         if check.verdict is not Verdict.verified_incorrect:
             continue
         values = [v for v in check.values if v.strip()]
-        if _already_covered(existing, values + [check.quantity]):
+        if _already_covered(existing, [*values, check.quantity]):
             continue
         promoted.append(
             Finding(
@@ -111,8 +111,7 @@ def _promoted_number_checks(output: Pass2Output, existing: list[Finding]) -> lis
                 location="; ".join(check.locations),
                 quote=" vs ".join(values) or check.quantity,
                 description=(
-                    f"{check.quantity}: the values disagree across locations. "
-                    f"{check.recomputation}"
+                    f"{check.quantity}: the values disagree across locations. {check.recomputation}"
                 ).strip(),
                 source_pass="pass2",
                 verdict=check.verdict.value,
@@ -201,12 +200,14 @@ def _reference_severity(check) -> tuple[Severity | None, str]:
     if check.status is ReferenceStatus.not_found:
         return (
             Severity.major,
-            f"Reference [{check.index}] could not be found in a bibliographic database. {detail}".strip(),
+            f"Reference [{check.index}] could not be found in a bibliographic "
+            f"database. {detail}".strip(),
         )
     if check.status is ReferenceStatus.metadata_mismatch:
         return (
             Severity.major,
-            f"Reference [{check.index}] metadata does not match the published record. {detail}".strip(),
+            f"Reference [{check.index}] metadata does not match the published "
+            f"record. {detail}".strip(),
         )
     if check.supports_claim in {SupportsClaim.different, SupportsClaim.unrelated}:
         return (
@@ -255,7 +256,9 @@ def findings_from_pass4(output: Pass4Output | None) -> list[Finding]:
                 category="missing_engagement",
                 location="",
                 quote=item.work,
-                description=f"Relevant work the paper does not engage with. {item.why_relevant}".strip(),
+                description=(
+                    f"Relevant work the paper does not engage with. {item.why_relevant}"
+                ).strip(),
                 source_pass="pass4",
                 url=item.url,
             )
@@ -289,7 +292,7 @@ def merge_runs(runs: list[list[Finding]]) -> list[Finding]:
                 runs_containing[index].add(run_number)
 
     total = len(runs)
-    for finding, seen_in in zip(merged, runs_containing):
+    for finding, seen_in in zip(merged, runs_containing, strict=True):
         finding.stability = Stability.stable if len(seen_in) >= total else Stability.unstable
     return merged
 

@@ -70,7 +70,7 @@ def create_app(config: Config, *, upload_dir: Path | None = None):
         try:
             client = LLMClient(config)
             listed = client.list_models()
-        except (LLMError, Exception) as exc:  # noqa: BLE001 - surfaced to the page
+        except (LLMError, Exception) as exc:
             return {"models": [], "error": str(exc)}
         return {
             "models": [

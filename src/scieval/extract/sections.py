@@ -9,12 +9,36 @@ from .pdf import Document, Line, lines_to_text
 
 # Headings papers use even when they are not numbered.
 KNOWN_HEADINGS = {
-    "abstract", "introduction", "background", "related work", "related works",
-    "literature review", "methods", "method", "methodology", "materials and methods",
-    "experimental setup", "experiments", "approach", "results", "results and discussion",
-    "evaluation", "discussion", "conclusion", "conclusions", "conclusion and future work",
-    "future work", "limitations", "acknowledgements", "acknowledgments", "references",
-    "bibliography", "appendix", "data availability", "declarations", "funding",
+    "abstract",
+    "introduction",
+    "background",
+    "related work",
+    "related works",
+    "literature review",
+    "methods",
+    "method",
+    "methodology",
+    "materials and methods",
+    "experimental setup",
+    "experiments",
+    "approach",
+    "results",
+    "results and discussion",
+    "evaluation",
+    "discussion",
+    "conclusion",
+    "conclusions",
+    "conclusion and future work",
+    "future work",
+    "limitations",
+    "acknowledgements",
+    "acknowledgments",
+    "references",
+    "bibliography",
+    "appendix",
+    "data availability",
+    "declarations",
+    "funding",
 }
 
 NUMBERED = re.compile(r"^(?P<number>\d+(?:\.\d+)*)\.?\s+(?P<title>\S.{0,110})$")
@@ -219,7 +243,9 @@ def resplit_with_inventory(doc: Document, inventory_sections: list[dict]) -> lis
     for pos, (start, number, title) in enumerate(anchors):
         end = anchors[pos + 1][0] if pos + 1 < len(anchors) else len(doc.lines)
         sections.append(
-            _make_section(len(sections), number, title, doc.lines[start + 1 : end], doc.lines[start])
+            _make_section(
+                len(sections), number, title, doc.lines[start + 1 : end], doc.lines[start]
+            )
         )
     return sections
 

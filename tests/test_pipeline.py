@@ -6,7 +6,6 @@ import csv
 import json
 
 import pytest
-
 from fake_llm import FakeLLMClient
 
 from scieval import pipeline
@@ -36,8 +35,16 @@ def run(paper_pdf, config, fake_client, tmp_path):
 
 def test_run_writes_every_output_file(run):
     expected = {
-        "pass0.json", "pass1.json", "pass2.json", "pass3.json", "pass4.json",
-        "findings.csv", "findings.json", "synthesis.md", "run.json", "extraction.json",
+        "pass0.json",
+        "pass1.json",
+        "pass2.json",
+        "pass3.json",
+        "pass4.json",
+        "findings.csv",
+        "findings.json",
+        "synthesis.md",
+        "run.json",
+        "extraction.json",
     }
     assert expected <= {p.name for p in run.run_dir.iterdir()}
 
@@ -95,7 +102,9 @@ def test_repeats_mark_stability(paper_pdf, config, fake_client, tmp_path):
     config.output_dir = tmp_path / "out-repeats"
     config.search.reference_provider = "none"
     result = pipeline.run_review(paper_pdf, config, repeats=2)
-    stabilities = {f.stability.value for f in result.findings if f.source_pass in {"pass1", "pass2"}}
+    stabilities = {
+        f.stability.value for f in result.findings if f.source_pass in {"pass1", "pass2"}
+    }
     # The scripted model is deterministic, so every repeated finding is stable.
     assert stabilities == {"stable"}
     assert json.loads((result.run_dir / "run.json").read_text())["repeats"] == 2
@@ -131,7 +140,9 @@ def test_no_search_tool_marks_references_unverified(paper_pdf, config, fake_clie
     assert pass4["fact_checks"][0]["source_url"] == ""
 
 
-def test_reference_lookup_results_reach_pass3(paper_pdf, config, fake_client, tmp_path, monkeypatch):
+def test_reference_lookup_results_reach_pass3(
+    paper_pdf, config, fake_client, tmp_path, monkeypatch
+):
     from scieval.search.base import ReferenceRecord
 
     class StubLookup:
@@ -140,8 +151,11 @@ def test_reference_lookup_results_reach_pass3(paper_pdf, config, fake_client, tm
 
         def lookup(self, *, raw, doi=None, title=None, year=None):
             return ReferenceRecord(
-                found=True, url="https://doi.org/10.1000/found", title=title or "",
-                year=year or "", source="stub",
+                found=True,
+                url="https://doi.org/10.1000/found",
+                title=title or "",
+                year=year or "",
+                source="stub",
             )
 
     monkeypatch.setattr(pipeline, "build_reference_lookup", lambda cfg: StubLookup())
@@ -163,8 +177,9 @@ def test_latest_pointer_tracks_the_newest_run(run):
     assert pointer == run.run_dir.name
 
 
-def test_spellcheck_uses_the_language_pass0_reports(paper_pdf, config, fake_client, tmp_path,
-                                                     monkeypatch):
+def test_spellcheck_uses_the_language_pass0_reports(
+    paper_pdf, config, fake_client, tmp_path, monkeypatch
+):
     """The candidates are built before Pass 0 runs, so they must be rebuilt after it."""
     languages: list[str] = []
     original = pipeline.compute_candidates
@@ -186,11 +201,24 @@ def test_candidates_survive_two_sections_with_the_same_title(paper, config):
     """Two 'Appendix' headings must not share one candidate list."""
     from scieval.extract.sections import Section
 
-    paper.sections = paper.sections + [
-        Section(index=90, number="", title="Appendix", start_page=3, end_page=3,
-                text="This sectoin contains a mistake. " * 12),
-        Section(index=91, number="", title="Appendix", start_page=4, end_page=4,
-                text="Another paragraf with a different mistake. " * 12),
+    paper.sections = [
+        *paper.sections,
+        Section(
+            index=90,
+            number="",
+            title="Appendix",
+            start_page=3,
+            end_page=3,
+            text="This sectoin contains a mistake. " * 12,
+        ),
+        Section(
+            index=91,
+            number="",
+            title="Appendix",
+            start_page=4,
+            end_page=4,
+            text="Another paragraf with a different mistake. " * 12,
+        ),
     ]
     pipeline.compute_candidates(paper, config, "en")
 
@@ -241,14 +269,30 @@ def test_a_sentence_that_already_cites_is_not_reported_as_missing_a_citation():
 def test_reference_audit_is_built_from_pass3_not_re_judged():
     from scieval.passes.synthesis import reference_audit
 
-    audit = reference_audit({
-        "pass3": {"references": [
-            {"index": 2, "raw": "Belady 1966", "status": "not_found", "notes": "no record",
-             "found_at": "", "mismatch_details": ""},
-            {"index": 1, "raw": "Smith 2018", "status": "verified", "notes": "",
-             "found_at": "https://doi.org/10.1/x", "mismatch_details": ""},
-        ]}
-    })
+    audit = reference_audit(
+        {
+            "pass3": {
+                "references": [
+                    {
+                        "index": 2,
+                        "raw": "Belady 1966",
+                        "status": "not_found",
+                        "notes": "no record",
+                        "found_at": "",
+                        "mismatch_details": "",
+                    },
+                    {
+                        "index": 1,
+                        "raw": "Smith 2018",
+                        "status": "verified",
+                        "notes": "",
+                        "found_at": "https://doi.org/10.1/x",
+                        "mismatch_details": "",
+                    },
+                ]
+            }
+        }
+    )
     lines = audit.splitlines()
     assert lines[0].startswith("- [1] verified: Smith 2018")
     assert "https://doi.org/10.1/x" in lines[0]

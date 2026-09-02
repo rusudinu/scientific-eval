@@ -76,12 +76,9 @@ def _extract_claims(runner: PassRunner, paper: PaperContext) -> Pass4ClaimsOutpu
         f"=== {s.label} (pages {s.start_page}-{s.end_page}) ===\n{clip(s.text, budget)}"
         for s in sections
     )
-    questions = (
-        paper.inventory.research_questions_or_hypotheses if paper.inventory else []
-    )
+    questions = paper.inventory.research_questions_or_hypotheses if paper.inventory else []
     payload = (
-        f"=== RESEARCH QUESTIONS (from Pass 0) ===\n{as_json(questions)}\n\n"
-        f"=== TEXT ===\n{body}"
+        f"=== RESEARCH QUESTIONS (from Pass 0) ===\n{as_json(questions)}\n\n=== TEXT ===\n{body}"
     )
     return runner.structured(
         pass_name="pass4",

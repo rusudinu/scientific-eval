@@ -27,7 +27,9 @@ class ChatResult:
 class LLMClient:
     """Thin wrapper over the OpenAI SDK, holding provider settings and call defaults."""
 
-    def __init__(self, config: Config, *, timeout: float | None = None, http_client: Any = None) -> None:
+    def __init__(
+        self, config: Config, *, timeout: float | None = None, http_client: Any = None
+    ) -> None:
         from openai import OpenAI
 
         self.config = config
@@ -53,9 +55,7 @@ class LLMClient:
             try:
                 response = self._client.models.list()
             except Exception as exc:  # network, auth, wrong port
-                raise LLMError(
-                    f"cannot list models at {self.base_url}: {exc}"
-                ) from exc
+                raise LLMError(f"cannot list models at {self.base_url}: {exc}") from exc
             self._models_cache = [m.model_dump() for m in response.data]
         return self._models_cache
 
@@ -169,7 +169,9 @@ def _openrouter_model_info(model_id: str) -> dict[str, Any]:
             "quantization": "|".join(quantizations) if quantizations else None,
             "architecture": (data.get("architecture") or {}).get("modality"),
             "context_length": data.get("context_length"),
-            "providers": sorted({e.get("provider_name") for e in endpoints if e.get("provider_name")}),
+            "providers": sorted(
+                {e.get("provider_name") for e in endpoints if e.get("provider_name")}
+            ),
             "source": "openrouter_endpoints_api",
         }
     except Exception:

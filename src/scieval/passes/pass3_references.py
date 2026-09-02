@@ -9,8 +9,8 @@ from __future__ import annotations
 from ..extract.bibliography import AUTHOR_YEAR, NUMERIC_CITATION, Reference
 from ..extract.sections import sections_of_kind
 from ..schemas import Pass3Output
-from ..schemas.pass3 import CitingSentence, ReferenceCheck
 from ..schemas.common import ReferenceStatus, SupportsClaim
+from ..schemas.pass3 import CitingSentence, ReferenceCheck
 from ..search.base import ReferenceLookup, ReferenceRecord
 from .base import PaperContext, PassRunner, as_json, clip, load_prompt
 
@@ -84,7 +84,12 @@ def _batch_payload(batch: list[Reference], records: dict[int, ReferenceRecord]) 
             {
                 "index": ref.index,
                 "raw": ref.raw,
-                "parsed": {"title": ref.title, "year": ref.year, "authors": ref.authors, "doi": ref.doi},
+                "parsed": {
+                    "title": ref.title,
+                    "year": ref.year,
+                    "authors": ref.authors,
+                    "doi": ref.doi,
+                },
                 "citing_sentences": [
                     {"quote": c.quote, "location": c.location} for c in ref.citing_sentences
                 ],
@@ -123,7 +128,9 @@ def _reconcile(
             if record.is_retracted:
                 check.status = ReferenceStatus.retracted
                 if record.retraction_notes:
-                    check.notes = f"{check.notes} Retraction notice: {record.retraction_notes}".strip()
+                    check.notes = (
+                        f"{check.notes} Retraction notice: {record.retraction_notes}".strip()
+                    )
             elif not record.found:
                 # The lookup ran and returned nothing. That is `not_found` - a reference
                 # that may not exist - and must not hide in the unverifiable bucket,
@@ -151,7 +158,9 @@ def _unverified(ref: Reference, record: ReferenceRecord | None = None) -> Refere
 
 def _add_missing_citations(runner: PassRunner, paper: PaperContext, output: Pass3Output) -> None:
     """Claims in the paper that need a citation and have none. Needs no search tool."""
-    sections = sections_of_kind(paper.sections, "introduction", "background", "methods", "discussion")
+    sections = sections_of_kind(
+        paper.sections, "introduction", "background", "methods", "discussion"
+    )
     if not sections:
         output.limitations.append(
             "Introduction/background sections were not identified, so missing citations "

@@ -13,8 +13,16 @@ def test_sections_are_detected_and_classified(paper):
     assert "References" in titles
 
     kinds = {s.kind for s in paper.sections}
-    for expected in {"abstract", "introduction", "background", "methods", "results",
-                     "discussion", "conclusion", "references"}:
+    for expected in {
+        "abstract",
+        "introduction",
+        "background",
+        "methods",
+        "results",
+        "discussion",
+        "conclusion",
+        "references",
+    }:
         assert expected in kinds, f"missing section kind: {expected}"
 
 

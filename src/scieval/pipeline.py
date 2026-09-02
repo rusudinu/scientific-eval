@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .config import Config
 from .extract.bibliography import attach_citing_sentences, extract_references
@@ -66,9 +67,7 @@ def build_paper_context(path: Path, config: Config, *, language: str = "en") -> 
     return _finish_context(path, document, sections, config, language)
 
 
-def _finish_context(
-    path: Path, document, sections, config: Config, language: str
-) -> PaperContext:
+def _finish_context(path: Path, document, sections, config: Config, language: str) -> PaperContext:
     references = extract_references(sections)
     attach_citing_sentences(references, sections)
     captions = extract_captions(document, sections)
@@ -172,9 +171,7 @@ def run_review(
             outputs = pass1_mechanical.run(runner, paper)
             runs.append(findings_from_pass1(outputs))
             outputs_per_run.append([o.model_dump(mode="json") for o in outputs])
-        pass_outputs["pass1"] = outputs_per_run[0] if repeats == 1 else {
-            "runs": outputs_per_run
-        }
+        pass_outputs["pass1"] = outputs_per_run[0] if repeats == 1 else {"runs": outputs_per_run}
         findings.extend(merge_runs(runs))
         provenance.passes_run.append("pass1")
 
@@ -216,9 +213,7 @@ def run_review(
     report = ""
     if "synthesis" in selected and pass_outputs:
         say("synthesis")
-        report = synthesis.run(
-            runner, pass_outputs, [f.model_dump(mode="json") for f in findings]
-        )
+        report = synthesis.run(runner, pass_outputs, [f.model_dump(mode="json") for f in findings])
         provenance.passes_run.append("synthesis")
     if not report.strip():
         report = fallback_report(findings, provenance, pass_outputs)

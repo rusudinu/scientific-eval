@@ -11,6 +11,12 @@ from . import (
 from .base import PaperContext, PassRunner
 
 __all__ = [
-    "PaperContext", "PassRunner", "pass0_inventory", "pass1_mechanical", "pass2_consistency",
-    "pass3_references", "pass4_facts", "synthesis",
+    "PaperContext",
+    "PassRunner",
+    "pass0_inventory",
+    "pass1_mechanical",
+    "pass2_consistency",
+    "pass3_references",
+    "pass4_facts",
+    "synthesis",
 ]

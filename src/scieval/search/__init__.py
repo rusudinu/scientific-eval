@@ -15,9 +15,18 @@ from .crossref import CrossrefLookup
 from .web import BraveSearch, SearxngSearch, TavilySearch
 
 __all__ = [
-    "BraveSearch", "CrossrefLookup", "NoReferenceLookup", "NoWebSearch", "ReferenceLookup",
-    "ReferenceRecord", "SearchResult", "SearxngSearch", "TavilySearch", "WebSearchProvider",
-    "build_reference_lookup", "build_web_search",
+    "BraveSearch",
+    "CrossrefLookup",
+    "NoReferenceLookup",
+    "NoWebSearch",
+    "ReferenceLookup",
+    "ReferenceRecord",
+    "SearchResult",
+    "SearxngSearch",
+    "TavilySearch",
+    "WebSearchProvider",
+    "build_reference_lookup",
+    "build_web_search",
 ]
 
 

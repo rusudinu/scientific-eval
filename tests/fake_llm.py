@@ -23,11 +23,18 @@ def _pass0() -> dict:
             {"number": "", "title": "References", "pages": "2"},
         ],
         "research_questions_or_hypotheses": ["Does adaptive caching reduce mean latency?"],
-        "figures": [{"id": "Figure 1", "caption": "Hit rate over time", "referenced_in_text": False}],
-        "tables": [{"id": "Table 1", "caption": "Mean latency by policy", "referenced_in_text": True}],
+        "figures": [
+            {"id": "Figure 1", "caption": "Hit rate over time", "referenced_in_text": False}
+        ],
+        "tables": [
+            {"id": "Table 1", "caption": "Mean latency by policy", "referenced_in_text": True}
+        ],
         "key_numbers": [
-            {"value": "31.4%", "meaning": "claimed latency reduction",
-             "locations": ["Abstract", "6 Conclusion"]},
+            {
+                "value": "31.4%",
+                "meaning": "claimed latency reduction",
+                "locations": ["Abstract", "6 Conclusion"],
+            },
             {"value": "27.2%", "meaning": "computed latency reduction", "locations": ["4 Results"]},
             {"value": "240", "meaning": "number of traces", "locations": ["Abstract", "3 Method"]},
             {"value": "200", "meaning": "traces in final evaluation", "locations": ["4 Results"]},
@@ -41,15 +48,30 @@ def _pass1() -> dict:
     return {
         "section": "1 Introduction",
         "spellcheck_triage": [
-            {"token": "allready", "classification": "typo", "correction": "already",
-             "quote": "was allready shown to be promising", "location": "1 Introduction, p. 1"},
-            {"token": "resizes", "classification": "domain_term", "correction": "",
-             "quote": "resizes the cache online", "location": "1 Introduction, p. 1"},
+            {
+                "token": "allready",
+                "classification": "typo",
+                "correction": "already",
+                "quote": "was allready shown to be promising",
+                "location": "1 Introduction, p. 1",
+            },
+            {
+                "token": "resizes",
+                "classification": "domain_term",
+                "correction": "",
+                "quote": "resizes the cache online",
+                "location": "1 Introduction, p. 1",
+            },
         ],
         "findings": [
-            {"severity": "minor", "category": "figure_table",
-             "location": "4 Results, p. 1", "quote": "Figure 1. Hit rate over time",
-             "description": "Figure 1 is never referenced in the text.", "correction": ""}
+            {
+                "severity": "minor",
+                "category": "figure_table",
+                "location": "4 Results, p. 1",
+                "quote": "Figure 1. Hit rate over time",
+                "description": "Figure 1 is never referenced in the text.",
+                "correction": "",
+            }
         ],
         "limitations": [],
     }
@@ -58,32 +80,52 @@ def _pass1() -> dict:
 def _pass2() -> dict:
     return {
         "number_checks": [
-            {"quantity": "latency reduction", "locations": ["Abstract", "4 Results"],
-             "values": ["31.4%", "27.2%"],
-             "recomputation": "(8.10 - 5.90) / 8.10 = 0.2716 = 27.2%, not 31.4%",
-             "verdict": "verified_incorrect"},
-            {"quantity": "trace count", "locations": ["Abstract", "4 Results"],
-             "values": ["240", "200"], "recomputation": "240 != 200; exclusions are not explained",
-             "verdict": "verified_incorrect"},
+            {
+                "quantity": "latency reduction",
+                "locations": ["Abstract", "4 Results"],
+                "values": ["31.4%", "27.2%"],
+                "recomputation": "(8.10 - 5.90) / 8.10 = 0.2716 = 27.2%, not 31.4%",
+                "verdict": "verified_incorrect",
+            },
+            {
+                "quantity": "trace count",
+                "locations": ["Abstract", "4 Results"],
+                "values": ["240", "200"],
+                "recomputation": "240 != 200; exclusions are not explained",
+                "verdict": "verified_incorrect",
+            },
         ],
         "claim_checks": [
-            {"claim_quote": "Adaptive caching therefore causes lower tail latency",
-             "location": "4 Results", "supporting_evidence": "Table 1 reports mean latency only",
-             "verdict": "overreach",
-             "explanation": "Causal language for a correlational comparison of means."}
+            {
+                "claim_quote": "Adaptive caching therefore causes lower tail latency",
+                "location": "4 Results",
+                "supporting_evidence": "Table 1 reports mean latency only",
+                "verdict": "overreach",
+                "explanation": "Causal language for a correlational comparison of means.",
+            }
         ],
         "research_question_alignment": [
-            {"question": "Does adaptive caching reduce mean latency?",
-             "what_was_actually_tested": "Mean latency on 200 of 240 traces",
-             "gap": "Tail latency is claimed but never measured."}
+            {
+                "question": "Does adaptive caching reduce mean latency?",
+                "what_was_actually_tested": "Mean latency on 200 of 240 traces",
+                "gap": "Tail latency is claimed but never measured.",
+            }
         ],
         "findings": [
-            {"severity": "critical", "category": "numbers", "location": "Abstract, p. 1",
-             "quote": "a mean latency reduction of 31.4%",
-             "description": "The abstract claims 31.4% but Table 1 gives 27.2%."},
-            {"severity": "major", "category": "claims", "location": "4 Results, p. 1",
-             "quote": "Adaptive caching therefore causes lower tail latency",
-             "description": "Causal claim about tail latency with no tail-latency measurement."},
+            {
+                "severity": "critical",
+                "category": "numbers",
+                "location": "Abstract, p. 1",
+                "quote": "a mean latency reduction of 31.4%",
+                "description": "The abstract claims 31.4% but Table 1 gives 27.2%.",
+            },
+            {
+                "severity": "major",
+                "category": "claims",
+                "location": "4 Results, p. 1",
+                "quote": "Adaptive caching therefore causes lower tail latency",
+                "description": "Causal claim about tail latency with no tail-latency measurement.",
+            },
         ],
         "limitations": [],
     }
@@ -93,11 +135,16 @@ def _pass3(indexes: list[int]) -> dict:
     return {
         "search_tool_available": True,
         "references": [
-            {"index": i, "raw": f"Reference {i}",
-             "status": "verified" if i != 4 else "not_found",
-             "found_at": "https://doi.org/10.1000/x" if i != 4 else "",
-             "mismatch_details": "", "citing_sentences": [],
-             "supports_claim": "yes" if i != 4 else "could_not_check", "notes": ""}
+            {
+                "index": i,
+                "raw": f"Reference {i}",
+                "status": "verified" if i != 4 else "not_found",
+                "found_at": "https://doi.org/10.1000/x" if i != 4 else "",
+                "mismatch_details": "",
+                "citing_sentences": [],
+                "supports_claim": "yes" if i != 4 else "could_not_check",
+                "notes": "",
+            }
             for i in indexes
         ],
         "missing_citations": [],
@@ -110,8 +157,11 @@ def _pass3_missing() -> dict:
         "search_tool_available": True,
         "references": [],
         "missing_citations": [
-            {"quote": "The first commercial key-value store was released in 1979.",
-             "location": "1 Introduction, p. 1", "why_needed": "A historical fact needs a source."}
+            {
+                "quote": "The first commercial key-value store was released in 1979.",
+                "location": "1 Introduction, p. 1",
+                "why_needed": "A historical fact needs a source.",
+            }
         ],
         "limitations": [],
     }
@@ -120,9 +170,11 @@ def _pass3_missing() -> dict:
 def _pass4_claims() -> dict:
     return {
         "claims": [
-            {"claim_quote": "The first commercial key-value store was released in 1979.",
-             "location": "1 Introduction, p. 1",
-             "search_query": "first commercial key-value store release year"}
+            {
+                "claim_quote": "The first commercial key-value store was released in 1979.",
+                "location": "1 Introduction, p. 1",
+                "search_query": "first commercial key-value store release year",
+            }
         ],
         "main_result_query": "adaptive cache sizing latency distributed key-value store",
         "limitations": [],
@@ -146,13 +198,17 @@ class FakeLLMClient:
     def native_model_info(self, model_id: str) -> dict[str, Any]:
         return {"quantization": "Q4_K_M", "context_length": 8192, "source": "fake"}
 
-    def chat(self, messages, *, model, response_format=None, seed=None, temperature=None,
-             max_tokens=None) -> ChatResult:
+    def chat(
+        self, messages, *, model, response_format=None, seed=None, temperature=None, max_tokens=None
+    ) -> ChatResult:
         user = messages[-1]["content"]
         self.calls.append({"model": model, "response_format": response_format, "user": user})
         payload = self._reply(response_format, user)
         return ChatResult(
-            text=payload, model=model, usage={"total_tokens": 100}, duration_s=0.01,
+            text=payload,
+            model=model,
+            usage={"total_tokens": 100},
+            duration_s=0.01,
             finish_reason="stop",
         )
 
@@ -169,10 +225,14 @@ class FakeLLMClient:
         if name == "Pass4ClaimsOutput":
             return json.dumps(_pass4_claims())
         if name == "Pass4Output":
-            return json.dumps({
-                "search_tool_available": True, "fact_checks": [], "missing_engagement": [],
-                "limitations": [],
-            })
+            return json.dumps(
+                {
+                    "search_tool_available": True,
+                    "fact_checks": [],
+                    "missing_engagement": [],
+                    "limitations": [],
+                }
+            )
         if name == "Pass3Output":
             if "missing_citations" in user and "list ONLY claims" in user:
                 return json.dumps(_pass3_missing())

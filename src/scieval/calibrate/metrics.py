@@ -12,8 +12,18 @@ from ..schemas import Finding
 from .matcher import MatchResult
 
 PAPER_COLUMNS = [
-    "paper", "run_id", "truth_findings", "model_findings", "matched", "missed", "spurious",
-    "precision", "recall", "f1", "severity_agreement", "error",
+    "paper",
+    "run_id",
+    "truth_findings",
+    "model_findings",
+    "matched",
+    "missed",
+    "spurious",
+    "precision",
+    "recall",
+    "f1",
+    "severity_agreement",
+    "error",
 ]
 
 
@@ -110,9 +120,7 @@ class CalibrationReport:
             "by_category": {k: v.as_dict() for k, v in sorted(self.by_category.items())},
             "by_pass": {k: v.as_dict() for k, v in sorted(self.by_pass.items())},
             "papers": [p.row() for p in self.papers],
-            "failed_papers": [
-                {"paper": p.paper, "error": p.error} for p in self.papers if p.error
-            ],
+            "failed_papers": [{"paper": p.paper, "error": p.error} for p in self.papers if p.error],
             "missed_findings": [
                 {"paper": p.paper, **f.model_dump(mode="json")}
                 for p in self.papers
@@ -232,8 +240,9 @@ def render_markdown(report: CalibrationReport) -> str:
 
     lines += _score_table("Per severity", report.by_severity)
     lines += _score_table("Per category", report.by_category)
-    lines += _score_table("Per pass (precision only; human reviews are not pass-labelled)",
-                          report.by_pass)
+    lines += _score_table(
+        "Per pass (precision only; human reviews are not pass-labelled)", report.by_pass
+    )
 
     scored = [p for p in report.papers if not p.error]
     missed = [(p.paper, f) for p in scored for f in p.result.missed]
@@ -273,10 +282,15 @@ def render_markdown(report: CalibrationReport) -> str:
 
 
 def _score_table(title: str, scores: dict[str, Scores]) -> list[str]:
-    lines = ["", f"## {title}", "", "| Key | TP | FP | FN | P | R | F1 |",
-             "| --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    lines = [
+        "",
+        f"## {title}",
+        "",
+        "| Key | TP | FP | FN | P | R | F1 |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
     if not scores:
-        return lines + ["| - | 0 | 0 | 0 | 0 | 0 | 0 |"]
+        return [*lines, "| - | 0 | 0 | 0 | 0 | 0 | 0 |"]
     for key, score in sorted(scores.items(), key=lambda kv: -kv[1].true_positives):
         lines.append(
             f"| {key} | {score.true_positives} | {score.false_positives} | "

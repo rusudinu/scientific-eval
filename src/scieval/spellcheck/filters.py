@@ -18,8 +18,27 @@ ACRONYM_DEFINITION = re.compile(r"\(([A-Z][A-Za-z0-9]{1,9})s?\)")
 
 # Tokens a general dictionary rejects but every paper legitimately contains.
 COMMON_ACADEMIC = {
-    "et", "al", "etal", "vs", "cf", "ibid", "eg", "ie", "arxiv", "doi", "isbn", "issn",
-    "http", "https", "www", "pdf", "url", "dataset", "datasets", "preprint", "supplementary",
+    "et",
+    "al",
+    "etal",
+    "vs",
+    "cf",
+    "ibid",
+    "eg",
+    "ie",
+    "arxiv",
+    "doi",
+    "isbn",
+    "issn",
+    "http",
+    "https",
+    "www",
+    "pdf",
+    "url",
+    "dataset",
+    "datasets",
+    "preprint",
+    "supplementary",
 }
 
 
@@ -110,7 +129,8 @@ def _unknown_candidates(
     parts: set[str] = set()
     for candidate in compound:
         parts.update(
-            part for part in candidate.token.split("-")
+            part
+            for part in candidate.token.split("-")
             if len(part) >= min_length and part.lower() not in allowlist
         )
     unknown = backend.unknown([c.token for c in simple] + sorted(parts))
@@ -129,7 +149,7 @@ def _strip_possessive(token: str) -> str:
 def _raw_tokens(sentence: str) -> list[str]:
     # Split on whitespace first so tokens containing digits or underscores are
     # rejected as a whole rather than silently broken into letter runs.
-    return [chunk.strip(".,;:()[]{}\"") for chunk in sentence.split()]
+    return [chunk.strip('.,;:()[]{}"') for chunk in sentence.split()]
 
 
 def _is_checkable(token: str, raw: str, allowlist: set[str], min_length: int) -> bool:
@@ -139,11 +159,9 @@ def _is_checkable(token: str, raw: str, allowlist: set[str], min_length: int) ->
         return False
     if HAS_DIGIT_OR_UNDERSCORE.search(raw):
         return False
-    if token.isupper():           # acronyms are judged by the terminology task, not spelling
+    if token.isupper():  # acronyms are judged by the terminology task, not spelling
         return False
-    if token.lower() in allowlist:
-        return False
-    return True
+    return token.lower() not in allowlist
 
 
 def _sentences(text: str) -> list[str]:

@@ -47,9 +47,19 @@ MIN_TEXT_CHARS = 200
 _WS = re.compile(r"[ \t]+")
 # Ligatures and typographic characters pymupdf hands back verbatim.
 _REPLACEMENTS = {
-    "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl",
-    "‘": "'", "’": "'", "“": '"', "”": '"',
-    "–": "-", "—": "-", " ": " ", "−": "-",
+    "ﬀ": "ff",
+    "ﬁ": "fi",
+    "ﬂ": "fl",
+    "ﬃ": "ffi",
+    "ﬄ": "ffl",
+    "‘": "'",
+    "’": "'",
+    "“": '"',
+    "”": '"',
+    "–": "-",
+    "—": "-",
+    " ": " ",
+    "−": "-",
 }
 
 
@@ -85,7 +95,7 @@ def extract_document(path: Path) -> Document:
                             text=text,
                             page=page_index,
                             size=round(size, 2),
-                            bold=bool(flags & 2 ** 4),
+                            bold=bool(flags & 2**4),
                             x0=round(bbox[0], 1),
                             y0=round(bbox[1], 1),
                         )

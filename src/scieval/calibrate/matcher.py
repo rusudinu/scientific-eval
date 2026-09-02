@@ -23,8 +23,8 @@ class Match:
 @dataclass
 class MatchResult:
     matches: list[Match]
-    missed: list[Finding]        # in the human review, not produced by the model
-    spurious: list[Finding]      # produced by the model, not in the human review
+    missed: list[Finding]  # in the human review, not produced by the model
+    spurious: list[Finding]  # produced by the model, not in the human review
 
     @property
     def true_positives(self) -> int:

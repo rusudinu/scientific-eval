@@ -24,8 +24,9 @@ class FakeClient:
         self._replies = list(replies)
         self.calls = []
 
-    def chat(self, messages, *, model, response_format=None, seed=None, temperature=None,
-             max_tokens=None):
+    def chat(
+        self, messages, *, model, response_format=None, seed=None, temperature=None, max_tokens=None
+    ):
         from scieval.llm.client import ChatResult
 
         self.calls.append(
@@ -42,8 +43,13 @@ def _valid_payload() -> str:
         {
             "section": "1 Introduction",
             "spellcheck_triage": [
-                {"token": "allready", "classification": "typo", "correction": "already",
-                 "quote": "was allready shown", "location": "1 Introduction"}
+                {
+                    "token": "allready",
+                    "classification": "typo",
+                    "correction": "already",
+                    "quote": "was allready shown",
+                    "location": "1 Introduction",
+                }
             ],
             "findings": [],
             "limitations": [],
@@ -85,9 +91,7 @@ def test_extract_json_recovers_the_object(text):
 
 def test_structured_call_parses_a_valid_reply():
     client = FakeClient([_valid_payload()])
-    result = structured_call(
-        client, model="m", system="sys", user="usr", schema=Pass1Output
-    )
+    result = structured_call(client, model="m", system="sys", user="usr", schema=Pass1Output)
     assert result.ok is True
     assert result.mode == "json_schema"
     assert result.attempts == 1
@@ -150,10 +154,16 @@ def test_client_sends_seed_and_temperature():
         return httpx2.Response(
             200,
             json={
-                "id": "1", "object": "chat.completion", "created": 0, "model": "test-model",
+                "id": "1",
+                "object": "chat.completion",
+                "created": 0,
+                "model": "test-model",
                 "choices": [
-                    {"index": 0, "message": {"role": "assistant", "content": "{}"},
-                     "finish_reason": "stop"}
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "{}"},
+                        "finish_reason": "stop",
+                    }
                 ],
                 "usage": {"prompt_tokens": 5, "completion_tokens": 2, "total_tokens": 7},
             },
@@ -176,10 +186,13 @@ def test_resolve_model_uses_the_first_reported_model():
     def handler(request):
         return httpx2.Response(
             200,
-            json={"object": "list", "data": [
-                {"id": "first-model", "object": "model"},
-                {"id": "second-model", "object": "model"},
-            ]},
+            json={
+                "object": "list",
+                "data": [
+                    {"id": "first-model", "object": "model"},
+                    {"id": "second-model", "object": "model"},
+                ],
+            },
         )
 
     client = LLMClient(load_config(), http_client=_sdk_client(handler))
@@ -204,10 +217,13 @@ def test_resolve_model_skips_embedding_models():
     def handler(request):
         return httpx2.Response(
             200,
-            json={"object": "list", "data": [
-                {"id": "text-embedding-nomic-embed-text-v1.5", "object": "model"},
-                {"id": "qwen/qwen3.5-9b", "object": "model"},
-            ]},
+            json={
+                "object": "list",
+                "data": [
+                    {"id": "text-embedding-nomic-embed-text-v1.5", "object": "model"},
+                    {"id": "qwen/qwen3.5-9b", "object": "model"},
+                ],
+            },
         )
 
     client = LLMClient(load_config(), http_client=_sdk_client(handler))
@@ -216,6 +232,7 @@ def test_resolve_model_skips_embedding_models():
 
 def test_resolve_model_errors_when_only_embeddings_are_loaded():
     import httpx2
+
     from scieval.config import ConfigError
 
     def handler(request):

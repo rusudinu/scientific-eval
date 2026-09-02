@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import threading
 import traceback
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from uuid import uuid4
 
 Runner = Callable[[Callable[[str], None]], Any]
@@ -26,13 +27,11 @@ class Job:
 
     id: str
     paper_name: str
-    status: str = "queued"          # queued | running | done | failed
+    status: str = "queued"  # queued | running | done | failed
     events: list[str] = field(default_factory=list)
     result: dict[str, Any] | None = None
     error: str = ""
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def add_event(self, message: str) -> None:

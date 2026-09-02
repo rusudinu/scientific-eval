@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 
 import pytest
-from typer.testing import CliRunner
-
 from fake_llm import FakeLLMClient
+from typer.testing import CliRunner
 
 from scieval import pipeline
 from scieval.cli import app
@@ -120,14 +119,12 @@ def test_calibrate_end_to_end(paper_pdf, tmp_path, fake_client):
             }
         )
     )
-    result = runner.invoke(
-        app, ["calibrate", str(folder), "--out", str(tmp_path / "out")]
-    )
+    result = runner.invoke(app, ["calibrate", str(folder), "--out", str(tmp_path / "out")])
     assert result.exit_code == 0, result.output
 
     report = json.loads((folder / "calibration.json").read_text())
-    assert report["overall"]["true_positives"] == 1     # the 31.4% finding matches
-    assert report["overall"]["false_negatives"] == 1    # the statistics finding is missed
+    assert report["overall"]["true_positives"] == 1  # the 31.4% finding matches
+    assert report["overall"]["false_negatives"] == 1  # the statistics finding is missed
     assert report["papers"][0]["paper"] == "synthetic-paper.pdf"
     assert (folder / "calibration.md").exists()
     assert (folder / "calibration.csv").exists()

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import platform
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -132,11 +132,11 @@ class RunProvenance:
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def make_run_id(seed: int) -> str:
-    return f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-s{seed}"
+    return f"{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}-s{seed}"
 
 
 def sha256_file(path: Path) -> str:

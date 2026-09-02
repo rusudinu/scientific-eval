@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.table import Table
 
 from . import __version__
-from .calibrate import GroundTruthError, TEMPLATE, render_markdown, run_calibration, write_csv
+from .calibrate import TEMPLATE, GroundTruthError, render_markdown, run_calibration, write_csv
 from .config import Config, ConfigError, load_config
 from .extract.pdf import NoTextError
 from .llm.client import LLMClient, LLMError
@@ -28,12 +28,28 @@ app = typer.Typer(
 console = Console()
 error_console = Console(stderr=True)
 
-ProviderOpt = Annotated[Optional[str], typer.Option("--provider", "-p", help="Provider profile from scieval.toml (lmstudio, openrouter, ...).")]
-ModelOpt = Annotated[Optional[str], typer.Option("--model", "-m", help="Model id for every pass. Defaults to the server's first model.")]
+ProviderOpt = Annotated[
+    Optional[str],
+    typer.Option(
+        "--provider", "-p", help="Provider profile from scieval.toml (lmstudio, openrouter, ...)."
+    ),
+]
+ModelOpt = Annotated[
+    Optional[str],
+    typer.Option(
+        "--model", "-m", help="Model id for every pass. Defaults to the server's first model."
+    ),
+]
 ConfigOpt = Annotated[Optional[Path], typer.Option("--config", "-c", help="Path to scieval.toml.")]
-SeedOpt = Annotated[Optional[int], typer.Option("--seed", help="Sampling seed sent with every call.")]
-TempOpt = Annotated[Optional[float], typer.Option("--temperature", help="Sampling temperature. Keep at or near 0.")]
-OutOpt = Annotated[Optional[Path], typer.Option("--out", "-o", help="Output directory (default: out/).")]
+SeedOpt = Annotated[
+    Optional[int], typer.Option("--seed", help="Sampling seed sent with every call.")
+]
+TempOpt = Annotated[
+    Optional[float], typer.Option("--temperature", help="Sampling temperature. Keep at or near 0.")
+]
+OutOpt = Annotated[
+    Optional[Path], typer.Option("--out", "-o", help="Output directory (default: out/).")
+]
 
 
 def _load_dotenv() -> None:
@@ -67,12 +83,20 @@ def _config(
             raise typer.BadParameter(f"--model-pass expects pass=model, got '{item}'")
         name, value = item.split("=", 1)
         if name not in ALL_PASSES:
-            raise typer.BadParameter(f"unknown pass '{name}'; expected one of {', '.join(ALL_PASSES)}")
+            raise typer.BadParameter(
+                f"unknown pass '{name}'; expected one of {', '.join(ALL_PASSES)}"
+            )
         overrides[name] = value
     try:
         return load_config(
-            config_path, provider=provider, model=model, model_overrides=overrides,
-            seed=seed, temperature=temperature, output_dir=output_dir, web_provider=web_provider,
+            config_path,
+            provider=provider,
+            model=model,
+            model_overrides=overrides,
+            seed=seed,
+            temperature=temperature,
+            output_dir=output_dir,
+            web_provider=web_provider,
         )
     except ConfigError as exc:
         error_console.print(f"[red]configuration error:[/red] {exc}")
@@ -102,16 +126,46 @@ def review(
     paper: Annotated[Path, typer.Argument(help="PDF to review.", exists=True, dir_okay=False)],
     provider: ProviderOpt = None,
     model: ModelOpt = None,
-    model_pass: Annotated[Optional[list[str]], typer.Option("--model-pass", help="Per-pass model, e.g. --model-pass pass2=qwen2.5-32b. Repeatable.")] = None,
+    model_pass: Annotated[
+        Optional[list[str]],
+        typer.Option(
+            "--model-pass", help="Per-pass model, e.g. --model-pass pass2=qwen2.5-32b. Repeatable."
+        ),
+    ] = None,
     config_path: ConfigOpt = None,
-    repeats: Annotated[int, typer.Option("--repeats", "-r", min=1, max=5, help="Runs of passes 1 and 2; findings seen in every run are marked stable.")] = 1,
-    only: Annotated[Optional[str], typer.Option("--only", help="Comma-separated passes to run, e.g. pass0,pass1.")] = None,
+    repeats: Annotated[
+        int,
+        typer.Option(
+            "--repeats",
+            "-r",
+            min=1,
+            max=5,
+            help="Runs of passes 1 and 2; findings seen in every run are marked stable.",
+        ),
+    ] = 1,
+    only: Annotated[
+        Optional[str],
+        typer.Option("--only", help="Comma-separated passes to run, e.g. pass0,pass1."),
+    ] = None,
     seed: SeedOpt = None,
     temperature: TempOpt = None,
     out: OutOpt = None,
-    web_search: Annotated[Optional[str], typer.Option("--web-search", help="Web search provider for Pass 4: none, tavily, brave, searxng.")] = None,
-    quantization: Annotated[Optional[str], typer.Option("--quantization", help="Record this quantization in the run log when the server does not report one.")] = None,
-    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Only print the output directory.")] = False,
+    web_search: Annotated[
+        Optional[str],
+        typer.Option(
+            "--web-search", help="Web search provider for Pass 4: none, tavily, brave, searxng."
+        ),
+    ] = None,
+    quantization: Annotated[
+        Optional[str],
+        typer.Option(
+            "--quantization",
+            help="Record this quantization in the run log when the server does not report one.",
+        ),
+    ] = None,
+    quiet: Annotated[
+        bool, typer.Option("--quiet", "-q", help="Only print the output directory.")
+    ] = False,
 ) -> None:
     """Review one paper and write JSON, CSV and a Markdown report."""
     config = _config(config_path, provider, model, model_pass, seed, temperature, out, web_search)
@@ -190,23 +244,49 @@ def _print_summary(result) -> None:
 
 @app.command()
 def calibrate(
-    folder: Annotated[Path, typer.Argument(help="Folder of X.pdf + X.review.json pairs.", exists=True, file_okay=False)],
+    folder: Annotated[
+        Path,
+        typer.Argument(help="Folder of X.pdf + X.review.json pairs.", exists=True, file_okay=False),
+    ],
     provider: ProviderOpt = None,
     model: ModelOpt = None,
     config_path: ConfigOpt = None,
     repeats: Annotated[int, typer.Option("--repeats", "-r", min=1, max=5)] = 1,
-    threshold: Annotated[float, typer.Option("--threshold", min=0.0, max=100.0, help="Similarity needed to call two findings the same issue.")] = 70.0,
-    reuse: Annotated[bool, typer.Option("--reuse", help="Reuse the latest stored run per paper instead of calling the model.")] = False,
+    threshold: Annotated[
+        float,
+        typer.Option(
+            "--threshold",
+            min=0.0,
+            max=100.0,
+            help="Similarity needed to call two findings the same issue.",
+        ),
+    ] = 70.0,
+    reuse: Annotated[
+        bool,
+        typer.Option(
+            "--reuse", help="Reuse the latest stored run per paper instead of calling the model."
+        ),
+    ] = False,
     seed: SeedOpt = None,
     temperature: TempOpt = None,
     out: OutOpt = None,
-    report_dir: Annotated[Optional[Path], typer.Option("--report-dir", help="Where to write calibration.{md,csv,json} (default: the paper folder).")] = None,
+    report_dir: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--report-dir",
+            help="Where to write calibration.{md,csv,json} (default: the paper folder).",
+        ),
+    ] = None,
 ) -> None:
     """Score the pipeline against human reviews and report agreement."""
     config = _config(config_path, provider, model, None, seed, temperature, out)
     try:
         report = run_calibration(
-            folder, config, repeats=repeats, threshold=threshold, reuse=reuse,
+            folder,
+            config,
+            repeats=repeats,
+            threshold=threshold,
+            reuse=reuse,
             emit=lambda m: console.print(f"[dim]{m}[/dim]"),
         )
     except GroundTruthError as exc:
@@ -235,8 +315,13 @@ def calibrate(
             table.add_row(f"[red]{row['paper']}[/red]", "failed", "-", "-", "-", "-", "-")
             continue
         table.add_row(
-            row["paper"], str(row["matched"]), str(row["missed"]), str(row["spurious"]),
-            f"{row['precision']:.2f}", f"{row['recall']:.2f}", f"{row['f1']:.2f}",
+            row["paper"],
+            str(row["matched"]),
+            str(row["missed"]),
+            str(row["spurious"]),
+            f"{row['precision']:.2f}",
+            f"{row['recall']:.2f}",
+            f"{row['f1']:.2f}",
         )
     console.print(table)
     console.print(
@@ -250,7 +335,9 @@ def calibrate(
 def models(
     provider: ProviderOpt = None,
     config_path: ConfigOpt = None,
-    detail: Annotated[bool, typer.Option("--detail", help="Query the provider for quantization (slower).")] = True,
+    detail: Annotated[
+        bool, typer.Option("--detail", help="Query the provider for quantization (slower).")
+    ] = True,
 ) -> None:
     """List the models the configured endpoint reports."""
     config = _config(config_path, provider)
@@ -283,8 +370,12 @@ def models(
 def extract(
     paper: Annotated[Path, typer.Argument(help="PDF to inspect.", exists=True, dir_okay=False)],
     config_path: ConfigOpt = None,
-    json_out: Annotated[Optional[Path], typer.Option("--json", help="Write the full extraction to this file.")] = None,
-    show: Annotated[str, typer.Option("--show", help="sections | references | candidates | captions | text")] = "sections",
+    json_out: Annotated[
+        Optional[Path], typer.Option("--json", help="Write the full extraction to this file.")
+    ] = None,
+    show: Annotated[
+        str, typer.Option("--show", help="sections | references | candidates | captions | text")
+    ] = "sections",
 ) -> None:
     """Run extraction only. No model calls, so this works with the server offline."""
     config = _config(config_path)
@@ -328,7 +419,9 @@ def extract(
     elif show == "captions":
         for caption in paper_context.captions:
             mark = "referenced" if caption.referenced_in_text else "NOT referenced"
-            console.print(f"[bold]{caption.id}[/bold] (p.{caption.page}, {mark}) {caption.caption[:120]}")
+            console.print(
+                f"[bold]{caption.id}[/bold] (p.{caption.page}, {mark}) {caption.caption[:120]}"
+            )
     elif show == "candidates":
         for section in paper_context.sections:
             candidates = paper_context.candidates_for(section)
@@ -339,7 +432,9 @@ def extract(
     elif show == "text":
         sys.stdout.write(paper_context.document.text)
     else:
-        raise typer.BadParameter("--show must be sections, references, candidates, captions or text")
+        raise typer.BadParameter(
+            "--show must be sections, references, candidates, captions or text"
+        )
 
 
 @app.command()
@@ -348,9 +443,13 @@ def serve(
     model: ModelOpt = None,
     config_path: ConfigOpt = None,
     out: OutOpt = None,
-    host: Annotated[str, typer.Option("--host", help="Interface to bind. Localhost by default.")] = "127.0.0.1",
+    host: Annotated[
+        str, typer.Option("--host", help="Interface to bind. Localhost by default.")
+    ] = "127.0.0.1",
     port: Annotated[int, typer.Option("--port", "-P", help="Port to listen on.")] = 8000,
-    open_browser: Annotated[bool, typer.Option("--open/--no-open", help="Open the page on start.")] = True,
+    open_browser: Annotated[
+        bool, typer.Option("--open/--no-open", help="Open the page on start.")
+    ] = True,
 ) -> None:
     """Serve the local web UI: drop a PDF, watch the passes run, read the report."""
     config = _config(config_path, provider, model, None, None, None, out)
@@ -368,8 +467,10 @@ def serve(
 
     url = f"http://{'localhost' if host in {'127.0.0.1', '0.0.0.0'} else host}:{port}"
     console.print(f"scientific-eval UI on [bold]{url}[/bold]")
-    console.print(f"[dim]{config.provider_name} at {config.provider.base_url}, "
-                  f"writing to {config.output_dir}[/dim]")
+    console.print(
+        f"[dim]{config.provider_name} at {config.provider.base_url}, "
+        f"writing to {config.output_dir}[/dim]"
+    )
     if host == "0.0.0.0":
         console.print(
             "[yellow]Bound to all interfaces: anyone on your network can upload papers "

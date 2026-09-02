@@ -24,7 +24,7 @@ class StructuredResult:
 
     value: Any
     ok: bool
-    mode: str                       # json_schema | json_object | text | failed
+    mode: str  # json_schema | json_object | text | failed
     attempts: int
     raw_text: str = ""
     error: str = ""
@@ -188,20 +188,30 @@ def structured_call(
             last_error = str(exc)
             if _is_context_error(exc):
                 return StructuredResult(
-                    value=None, ok=False, mode="context_exceeded", attempts=attempts,
+                    value=None,
+                    ok=False,
+                    mode="context_exceeded",
+                    attempts=attempts,
                     error=(
                         f"{exc}\nThe payload does not fit the model's context. Load the model "
                         f"with a larger context, use a smaller model input by lowering "
                         f"[limits] in scieval.toml, or pick a longer-context model."
                     ),
-                    usage=usage_total, duration_s=duration_total, model=used_model,
+                    usage=usage_total,
+                    duration_s=duration_total,
+                    model=used_model,
                 )
             # A rejected response_format is a server capability problem: try the
             # next mode. Anything else (connection, auth) will fail the same way.
             if not _is_format_error(exc):
                 return StructuredResult(
-                    value=None, ok=False, mode="failed", attempts=attempts,
-                    error=last_error, usage=usage_total, duration_s=duration_total,
+                    value=None,
+                    ok=False,
+                    mode="failed",
+                    attempts=attempts,
+                    error=last_error,
+                    usage=usage_total,
+                    duration_s=duration_total,
                     model=used_model,
                 )
             continue
@@ -214,14 +224,26 @@ def structured_call(
         value, error = _parse(result.text, schema)
         if value is not None:
             return StructuredResult(
-                value=value, ok=True, mode=mode, attempts=attempts, raw_text=result.text,
-                usage=usage_total, duration_s=duration_total, model=used_model,
+                value=value,
+                ok=True,
+                mode=mode,
+                attempts=attempts,
+                raw_text=result.text,
+                usage=usage_total,
+                duration_s=duration_total,
+                model=used_model,
             )
         last_error = error
 
         repaired, repair_result = _repair(
-            client, model=model, messages=messages, previous=result, error=error,
-            schema=schema, response_format=response_format, max_tokens=max_tokens,
+            client,
+            model=model,
+            messages=messages,
+            previous=result,
+            error=error,
+            schema=schema,
+            response_format=response_format,
+            max_tokens=max_tokens,
         )
         attempts += 1
         if repair_result is not None:
@@ -230,15 +252,26 @@ def structured_call(
             last_text = repair_result.text
         if repaired is not None:
             return StructuredResult(
-                value=repaired, ok=True, mode=f"{mode}+repair", attempts=attempts,
-                raw_text=last_text, usage=usage_total, duration_s=duration_total,
+                value=repaired,
+                ok=True,
+                mode=f"{mode}+repair",
+                attempts=attempts,
+                raw_text=last_text,
+                usage=usage_total,
+                duration_s=duration_total,
                 model=used_model,
             )
 
     return StructuredResult(
-        value=None, ok=False, mode="failed", attempts=attempts, raw_text=last_text,
-        error=last_error or "no valid JSON produced", usage=usage_total,
-        duration_s=duration_total, model=used_model,
+        value=None,
+        ok=False,
+        mode="failed",
+        attempts=attempts,
+        raw_text=last_text,
+        error=last_error or "no valid JSON produced",
+        usage=usage_total,
+        duration_s=duration_total,
+        model=used_model,
     )
 
 
@@ -254,7 +287,8 @@ def _repair(
     max_tokens: int | None,
 ) -> tuple[T | None, ChatResult | None]:
     """One corrective turn quoting the validation error."""
-    repair_messages = messages + [
+    repair_messages = [
+        *messages,
         {"role": "assistant", "content": previous.text[:6000]},
         {
             "role": "user",
@@ -279,12 +313,25 @@ def _repair(
 # only trades a clear error for an unconstrained reply, so it must not look like a
 # response_format problem.
 CONTEXT_MARKERS = (
-    "context length", "context window", "maximum context", "context_length",
-    "too long", "too many tokens", "exceeds", "reduce the length", "prompt is too",
+    "context length",
+    "context window",
+    "maximum context",
+    "context_length",
+    "too long",
+    "too many tokens",
+    "exceeds",
+    "reduce the length",
+    "prompt is too",
 )
 FORMAT_MARKERS = (
-    "response_format", "json_schema", "json schema", "unsupported", "not supported",
-    "invalid_request_error", "422", "schema",
+    "response_format",
+    "json_schema",
+    "json schema",
+    "unsupported",
+    "not supported",
+    "invalid_request_error",
+    "422",
+    "schema",
 )
 
 

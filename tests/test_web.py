@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 
 import pytest
-
 from fake_llm import FakeLLMClient
 
 from scieval import pipeline
@@ -130,9 +129,7 @@ def test_history_lists_the_run_and_serves_its_files(client, paper_pdf):
     assert stored["report"]
     assert "findings.csv" in stored["files"]
 
-    csv = client.get(
-        f"/api/history/{row['paper_slug']}/{row['run_id']}/files/findings.csv"
-    )
+    csv = client.get(f"/api/history/{row['paper_slug']}/{row['run_id']}/files/findings.csv")
     assert csv.status_code == 200
     assert csv.text.splitlines()[0].startswith("pass,severity,category")
 
@@ -148,6 +145,7 @@ def test_history_is_empty_before_any_run(client):
 
 
 # --- job registry ---------------------------------------------------------------
+
 
 def test_uploaded_filenames_are_made_safe():
     assert safe_filename("../../etc/passwd") == "passwd.pdf"

@@ -15,8 +15,16 @@ from ..llm.provenance import RunProvenance
 from ..schemas import Finding
 
 FINDINGS_COLUMNS = [
-    "pass", "severity", "category", "location", "quote", "description",
-    "correction", "verdict", "url", "stability",
+    "pass",
+    "severity",
+    "category",
+    "location",
+    "quote",
+    "description",
+    "correction",
+    "verdict",
+    "url",
+    "stability",
 ]
 
 
@@ -128,24 +136,29 @@ def fallback_report(
             severity += " (unstable)"
         evidence = finding.url or _cell(finding.quote)
         lines.append(
-            f"| {severity} | {_cell(finding.location)} | {_cell(finding.description)} | {evidence} |"
+            f"| {severity} | {_cell(finding.location)} | "
+            f"{_cell(finding.description)} | {evidence} |"
         )
     if not findings:
         lines.append("| - | - | No findings were reported. | - |")
 
     lines += ["", "## 3. Reference audit", ""]
     references = [
-        ref for entry in _flatten(pass_outputs.get("pass3"))
-        for ref in entry.get("references", [])
+        ref for entry in _flatten(pass_outputs.get("pass3")) for ref in entry.get("references", [])
     ]
     icons = {
-        "verified": "OK", "metadata_mismatch": "MISMATCH", "not_found": "NOT FOUND",
-        "retracted": "RETRACTED", "could_not_verify": "UNVERIFIED",
+        "verified": "OK",
+        "metadata_mismatch": "MISMATCH",
+        "not_found": "NOT FOUND",
+        "retracted": "RETRACTED",
+        "could_not_verify": "UNVERIFIED",
     }
     for ref in references:
         icon = icons.get(ref.get("status", ""), "?")
         detail = ref.get("mismatch_details") or ref.get("notes") or ""
-        lines.append(f"- [{ref.get('index')}] {icon} - {ref.get('raw', '')[:180]} {detail}".rstrip())
+        lines.append(
+            f"- [{ref.get('index')}] {icon} - {ref.get('raw', '')[:180]} {detail}".rstrip()
+        )
     if not references:
         lines.append("- No bibliography entries were checked.")
 
@@ -168,7 +181,9 @@ def fallback_report(
     lines += ["", "## 6. Pass coverage", ""]
     lines.append(f"- Passes run: {', '.join(provenance.passes_run) or 'none'}")
     lines.append(f"- Search tool available: {provenance.search_tool_available}")
-    lines.append(f"- Model: {provenance.model} ({provenance.quantization}) via {provenance.provider}")
+    lines.append(
+        f"- Model: {provenance.model} ({provenance.quantization}) via {provenance.provider}"
+    )
     lines.append(f"- Prompt version: {provenance.prompt_version}, seed {provenance.seed}")
     for name, limitation in _limitations(pass_outputs):
         lines.append(f"- {name} limitation: {limitation}")
@@ -231,7 +246,8 @@ def _unverifiable(pass_outputs: dict[str, Any]) -> list[str]:
             if check.get("verdict") == "could_not_verify":
                 items.append(f"Pass 2 number check: {check.get('quantity', '')}")
     unverified = [
-        r for entry in _flatten(pass_outputs.get("pass3"))
+        r
+        for entry in _flatten(pass_outputs.get("pass3"))
         for r in entry.get("references", [])
         if r.get("status") == "could_not_verify"
     ]
@@ -241,7 +257,8 @@ def _unverifiable(pass_outputs: dict[str, Any]) -> list[str]:
             "search each title and DOI by hand."
         )
     unchecked = [
-        c for entry in _flatten(pass_outputs.get("pass4"))
+        c
+        for entry in _flatten(pass_outputs.get("pass4"))
         for c in entry.get("fact_checks", [])
         if c.get("verdict") == "could_not_verify"
     ]

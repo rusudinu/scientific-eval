@@ -26,9 +26,8 @@ def _payload(runner: PassRunner, paper: PaperContext) -> str:
         # Heading detection found nothing usable; fall back to the second half of the paper,
         # where results and conclusions live.
         text = paper.document.text
-        wanted_text = (
-            "=== PAPER TEXT (second half; section split unavailable) ===\n"
-            + clip(text[len(text) // 2 :], budget * 2)
+        wanted_text = "=== PAPER TEXT (second half; section split unavailable) ===\n" + clip(
+            text[len(text) // 2 :], budget * 2
         )
         missing_note = (
             "NOTE: the abstract/results/discussion/conclusion sections could not be identified. "
@@ -61,7 +60,8 @@ def _payload(runner: PassRunner, paper: PaperContext) -> str:
     parts = [
         f"=== PASS 0 INVENTORY ===\n{inventory_json}",
         wanted_text,
-        f"=== TABLE CONTENTS (text around each table caption) ===\n{clip(paper.tables_text, 20000)}",
+        "=== TABLE CONTENTS (text around each table caption) ===\n"
+        + clip(paper.tables_text, 20000),
     ]
     if missing_note:
         parts.insert(0, missing_note)

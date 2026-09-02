@@ -37,17 +37,37 @@ def test_pass1_typos_and_findings_become_findings():
         {
             "section": "1 Introduction",
             "spellcheck_triage": [
-                {"token": "allready", "classification": "typo", "correction": "already",
-                 "quote": "was allready shown", "location": "1 Introduction"},
-                {"token": "resizes", "classification": "domain_term", "correction": "",
-                 "quote": "", "location": ""},
-                {"token": "optimise", "classification": "inconsistent", "correction": "optimize",
-                 "quote": "we optimise", "location": "2 Related Work"},
+                {
+                    "token": "allready",
+                    "classification": "typo",
+                    "correction": "already",
+                    "quote": "was allready shown",
+                    "location": "1 Introduction",
+                },
+                {
+                    "token": "resizes",
+                    "classification": "domain_term",
+                    "correction": "",
+                    "quote": "",
+                    "location": "",
+                },
+                {
+                    "token": "optimise",
+                    "classification": "inconsistent",
+                    "correction": "optimize",
+                    "quote": "we optimise",
+                    "location": "2 Related Work",
+                },
             ],
             "findings": [
-                {"severity": "minor", "category": "grammar", "location": "1 Introduction",
-                 "quote": "the results is clear", "description": "Subject-verb disagreement.",
-                 "correction": "the results are clear"}
+                {
+                    "severity": "minor",
+                    "category": "grammar",
+                    "location": "1 Introduction",
+                    "quote": "the results is clear",
+                    "description": "Subject-verb disagreement.",
+                    "correction": "the results are clear",
+                }
             ],
             "limitations": [],
         }
@@ -67,15 +87,33 @@ def test_retracted_reference_is_critical():
         {
             "search_tool_available": True,
             "references": [
-                {"index": 1, "raw": "Some paper", "status": "retracted", "found_at": "http://x",
-                 "mismatch_details": "", "citing_sentences": [], "supports_claim": "yes",
-                 "notes": "Retraction notice: withdrawn"},
-                {"index": 2, "raw": "Other paper", "status": "verified", "found_at": "http://y",
-                 "mismatch_details": "", "citing_sentences": [], "supports_claim": "yes",
-                 "notes": ""},
+                {
+                    "index": 1,
+                    "raw": "Some paper",
+                    "status": "retracted",
+                    "found_at": "http://x",
+                    "mismatch_details": "",
+                    "citing_sentences": [],
+                    "supports_claim": "yes",
+                    "notes": "Retraction notice: withdrawn",
+                },
+                {
+                    "index": 2,
+                    "raw": "Other paper",
+                    "status": "verified",
+                    "found_at": "http://y",
+                    "mismatch_details": "",
+                    "citing_sentences": [],
+                    "supports_claim": "yes",
+                    "notes": "",
+                },
             ],
             "missing_citations": [
-                {"quote": "40% of memory", "location": "1 Introduction", "why_needed": "A statistic."}
+                {
+                    "quote": "40% of memory",
+                    "location": "1 Introduction",
+                    "why_needed": "A statistic.",
+                }
             ],
             "limitations": [],
         }
@@ -93,11 +131,19 @@ def test_reference_supporting_a_weaker_claim_is_minor():
         {
             "search_tool_available": True,
             "references": [
-                {"index": 1, "raw": "Paper", "status": "verified", "found_at": "http://x",
-                 "mismatch_details": "", "citing_sentences": [], "supports_claim": "weaker",
-                 "notes": ""}
+                {
+                    "index": 1,
+                    "raw": "Paper",
+                    "status": "verified",
+                    "found_at": "http://x",
+                    "mismatch_details": "",
+                    "citing_sentences": [],
+                    "supports_claim": "weaker",
+                    "notes": "",
+                }
             ],
-            "missing_citations": [], "limitations": [],
+            "missing_citations": [],
+            "limitations": [],
         }
     )
     assert findings_from_pass3(output)[0].severity is Severity.minor
@@ -108,15 +154,30 @@ def test_pass4_only_reports_contradicted_claims():
         {
             "search_tool_available": True,
             "fact_checks": [
-                {"claim_quote": "released in 1979", "location": "1 Introduction",
-                 "source_url": "http://src", "source_says": "It was 1989.",
-                 "verdict": "verified_incorrect"},
-                {"claim_quote": "cache misses dominate", "location": "1 Introduction",
-                 "source_url": "http://ok", "source_says": "agrees", "verdict": "verified_correct"},
-                {"claim_quote": "unknown", "location": "1", "source_url": "",
-                 "source_says": "", "verdict": "could_not_verify"},
+                {
+                    "claim_quote": "released in 1979",
+                    "location": "1 Introduction",
+                    "source_url": "http://src",
+                    "source_says": "It was 1989.",
+                    "verdict": "verified_incorrect",
+                },
+                {
+                    "claim_quote": "cache misses dominate",
+                    "location": "1 Introduction",
+                    "source_url": "http://ok",
+                    "source_says": "agrees",
+                    "verdict": "verified_correct",
+                },
+                {
+                    "claim_quote": "unknown",
+                    "location": "1",
+                    "source_url": "",
+                    "source_says": "",
+                    "verdict": "could_not_verify",
+                },
             ],
-            "missing_engagement": [], "limitations": [],
+            "missing_engagement": [],
+            "limitations": [],
         }
     )
     findings = findings_from_pass4(output)
@@ -181,28 +242,56 @@ def test_csv_has_the_expected_columns(tmp_path):
     assert rows[0]["location"] == "4 Results"
     assert rows[0]["pass"] == "pass2"
     assert set(rows[0]) == {
-        "pass", "severity", "category", "location", "quote", "description",
-        "correction", "verdict", "url", "stability",
+        "pass",
+        "severity",
+        "category",
+        "location",
+        "quote",
+        "description",
+        "correction",
+        "verdict",
+        "url",
+        "stability",
     }
 
 
 def test_fallback_report_covers_all_six_sections():
     provenance = RunProvenance(
-        run_id="r", paper="p.pdf", paper_sha256="abc", provider="lmstudio",
-        base_url="http://x", model="m", quantization="Q4_K_M", model_info={},
-        prompt_version="1.0.0", prompt_hashes={}, seed=42, temperature=0.0, repeats=1,
-        reference_provider="crossref", web_search_provider="none", search_tool_available=True,
-        started_at="now", passes_run=["pass0", "pass1"],
+        run_id="r",
+        paper="p.pdf",
+        paper_sha256="abc",
+        provider="lmstudio",
+        base_url="http://x",
+        model="m",
+        quantization="Q4_K_M",
+        model_info={},
+        prompt_version="1.0.0",
+        prompt_hashes={},
+        seed=42,
+        temperature=0.0,
+        repeats=1,
+        reference_provider="crossref",
+        web_search_provider="none",
+        search_tool_available=True,
+        started_at="now",
+        passes_run=["pass0", "pass1"],
     )
     report = fallback_report(
         [_finding("a quote", severity=Severity.critical, description="Numbers disagree.")],
         provenance,
-        {"pass0": {"language": "en-GB", "limitations": ["truncated input"]},
-         "pass3": {"references": [{"index": 1, "status": "not_found", "raw": "X"}]}},
+        {
+            "pass0": {"language": "en-GB", "limitations": ["truncated input"]},
+            "pass3": {"references": [{"index": 1, "status": "not_found", "raw": "X"}]},
+        },
     )
-    for heading in ("## 1. Verdict", "## 2. Findings", "## 3. Reference audit",
-                    "## 4. Spelling and language", "## 5. Unverifiable items",
-                    "## 6. Pass coverage"):
+    for heading in (
+        "## 1. Verdict",
+        "## 2. Findings",
+        "## 3. Reference audit",
+        "## 4. Spelling and language",
+        "## 5. Unverifiable items",
+        "## 6. Pass coverage",
+    ):
         assert heading in report
     assert "Numbers disagree." in report
     assert "Q4_K_M" in report
@@ -227,10 +316,23 @@ def test_same_quote_in_two_sections_is_two_findings():
 def test_fallback_report_reads_repeated_run_outputs():
     """With --repeats the pass outputs are stored as {"runs": [...]}."""
     provenance = RunProvenance(
-        run_id="r", paper="p.pdf", paper_sha256="abc", provider="lmstudio", base_url="http://x",
-        model="m", quantization="Q4", model_info={}, prompt_version="1.0.0", prompt_hashes={},
-        seed=42, temperature=0.0, repeats=2, reference_provider="crossref",
-        web_search_provider="none", search_tool_available=True, started_at="now",
+        run_id="r",
+        paper="p.pdf",
+        paper_sha256="abc",
+        provider="lmstudio",
+        base_url="http://x",
+        model="m",
+        quantization="Q4",
+        model_info={},
+        prompt_version="1.0.0",
+        prompt_hashes={},
+        seed=42,
+        temperature=0.0,
+        repeats=2,
+        reference_provider="crossref",
+        web_search_provider="none",
+        search_tool_available=True,
+        started_at="now",
     )
     report = fallback_report(
         [],
@@ -238,10 +340,16 @@ def test_fallback_report_reads_repeated_run_outputs():
         {
             "pass0": {"language": "en-GB", "limitations": []},
             "pass1": {"runs": [[{"section": "1", "limitations": ["pass1 could not read table"]}]]},
-            "pass2": {"runs": [{
-                "limitations": ["pass2 limitation text"],
-                "number_checks": [{"quantity": "sample size", "verdict": "could_not_verify"}],
-            }]},
+            "pass2": {
+                "runs": [
+                    {
+                        "limitations": ["pass2 limitation text"],
+                        "number_checks": [
+                            {"quantity": "sample size", "verdict": "could_not_verify"}
+                        ],
+                    }
+                ]
+            },
         },
     )
     assert "pass1 could not read table" in report
@@ -251,23 +359,30 @@ def test_fallback_report_reads_repeated_run_outputs():
 
 
 def _pass2(number_checks=None, claim_checks=None, findings=None):
-    return Pass2Output.model_validate({
-        "number_checks": number_checks or [],
-        "claim_checks": claim_checks or [],
-        "research_question_alignment": [],
-        "findings": findings or [],
-        "limitations": [],
-    })
+    return Pass2Output.model_validate(
+        {
+            "number_checks": number_checks or [],
+            "claim_checks": claim_checks or [],
+            "research_question_alignment": [],
+            "findings": findings or [],
+            "limitations": [],
+        }
+    )
 
 
 def test_a_failed_number_check_becomes_a_finding_even_if_the_model_omits_it():
     """The check is the evidence; dropping it loses confirmed defects."""
-    output = _pass2(number_checks=[{
-        "quantity": "latency reduction", "locations": ["Abstract", "4 Results"],
-        "values": ["31.4%", "27.2%"],
-        "recomputation": "(8.10 - 5.90) / 8.10 = 27.2%, not 31.4%",
-        "verdict": "verified_incorrect",
-    }])
+    output = _pass2(
+        number_checks=[
+            {
+                "quantity": "latency reduction",
+                "locations": ["Abstract", "4 Results"],
+                "values": ["31.4%", "27.2%"],
+                "recomputation": "(8.10 - 5.90) / 8.10 = 27.2%, not 31.4%",
+                "verdict": "verified_incorrect",
+            }
+        ]
+    )
     findings = findings_from_pass2(output)
     assert len(findings) == 1
     assert findings[0].category == "numbers"
@@ -276,25 +391,40 @@ def test_a_failed_number_check_becomes_a_finding_even_if_the_model_omits_it():
 
 
 def test_a_passing_number_check_produces_no_finding():
-    output = _pass2(number_checks=[{
-        "quantity": "sample size", "locations": ["Abstract"], "values": ["240"],
-        "recomputation": "consistent", "verdict": "verified_correct",
-    }])
+    output = _pass2(
+        number_checks=[
+            {
+                "quantity": "sample size",
+                "locations": ["Abstract"],
+                "values": ["240"],
+                "recomputation": "consistent",
+                "verdict": "verified_correct",
+            }
+        ]
+    )
     assert findings_from_pass2(output) == []
 
 
 def test_a_check_already_reported_as_a_finding_is_not_duplicated():
     output = _pass2(
-        number_checks=[{
-            "quantity": "latency reduction", "locations": ["Abstract"],
-            "values": ["31.4%", "27.2%"], "recomputation": "27.2%, not 31.4%",
-            "verdict": "verified_incorrect",
-        }],
-        findings=[{
-            "severity": "critical", "category": "numbers", "location": "Abstract",
-            "quote": "a mean latency reduction of 31.4%",
-            "description": "The abstract claims 31.4% but the table supports 27.2%.",
-        }],
+        number_checks=[
+            {
+                "quantity": "latency reduction",
+                "locations": ["Abstract"],
+                "values": ["31.4%", "27.2%"],
+                "recomputation": "27.2%, not 31.4%",
+                "verdict": "verified_incorrect",
+            }
+        ],
+        findings=[
+            {
+                "severity": "critical",
+                "category": "numbers",
+                "location": "Abstract",
+                "quote": "a mean latency reduction of 31.4%",
+                "description": "The abstract claims 31.4% but the table supports 27.2%.",
+            }
+        ],
     )
     findings = findings_from_pass2(output)
     assert len(findings) == 1
@@ -302,11 +432,17 @@ def test_a_check_already_reported_as_a_finding_is_not_duplicated():
 
 
 def test_an_overreaching_claim_check_becomes_a_finding():
-    output = _pass2(claim_checks=[{
-        "claim_quote": "Adaptive caching therefore causes lower tail latency",
-        "location": "4 Results", "supporting_evidence": "Table 1 reports mean latency only",
-        "verdict": "overreach", "explanation": "Causal language for a correlational design.",
-    }])
+    output = _pass2(
+        claim_checks=[
+            {
+                "claim_quote": "Adaptive caching therefore causes lower tail latency",
+                "location": "4 Results",
+                "supporting_evidence": "Table 1 reports mean latency only",
+                "verdict": "overreach",
+                "explanation": "Causal language for a correlational design.",
+            }
+        ]
+    )
     findings = findings_from_pass2(output)
     assert len(findings) == 1
     assert findings[0].category == "claims"
@@ -315,25 +451,50 @@ def test_an_overreaching_claim_check_becomes_a_finding():
 
 
 def test_a_supported_claim_check_produces_no_finding():
-    output = _pass2(claim_checks=[{
-        "claim_quote": "We reduce latency", "location": "Abstract",
-        "supporting_evidence": "Table 1", "verdict": "supported", "explanation": "",
-    }])
+    output = _pass2(
+        claim_checks=[
+            {
+                "claim_quote": "We reduce latency",
+                "location": "Abstract",
+                "supporting_evidence": "Table 1",
+                "verdict": "supported",
+                "explanation": "",
+            }
+        ]
+    )
     assert findings_from_pass2(output) == []
 
 
 def test_repeated_runs_do_not_duplicate_limitation_lines():
     provenance = RunProvenance(
-        run_id="r", paper="p.pdf", paper_sha256="a", provider="lmstudio", base_url="http://x",
-        model="m", quantization="Q4", model_info={}, prompt_version="1.0.0", prompt_hashes={},
-        seed=42, temperature=0.0, repeats=2, reference_provider="none",
-        web_search_provider="none", search_tool_available=False, started_at="now",
+        run_id="r",
+        paper="p.pdf",
+        paper_sha256="a",
+        provider="lmstudio",
+        base_url="http://x",
+        model="m",
+        quantization="Q4",
+        model_info={},
+        prompt_version="1.0.0",
+        prompt_hashes={},
+        seed=42,
+        temperature=0.0,
+        repeats=2,
+        reference_provider="none",
+        web_search_provider="none",
+        search_tool_available=False,
+        started_at="now",
     )
     report = fallback_report(
-        [], provenance,
-        {"pass1": {"runs": [
-            [{"section": "1", "limitations": ["no candidates provided"]}],
-            [{"section": "1", "limitations": ["no candidates provided"]}],
-        ]}},
+        [],
+        provenance,
+        {
+            "pass1": {
+                "runs": [
+                    [{"section": "1", "limitations": ["no candidates provided"]}],
+                    [{"section": "1", "limitations": ["no candidates provided"]}],
+                ]
+            }
+        },
     )
     assert report.count("no candidates provided") == 1

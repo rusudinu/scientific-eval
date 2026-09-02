@@ -144,8 +144,10 @@ class CrossrefLookup:
         subtype = item.get("subtype") or ""
         updates = item.get("update-to") or []
         retraction_labels = [
-            u.get("label", "") for u in updates
-            if "retract" in str(u.get("type", "")).lower() or "retract" in str(u.get("label", "")).lower()
+            u.get("label", "")
+            for u in updates
+            if "retract" in str(u.get("type", "")).lower()
+            or "retract" in str(u.get("label", "")).lower()
         ]
         blob = f"{item_type} {subtype} {venue} {title}".lower()
         return ReferenceRecord(

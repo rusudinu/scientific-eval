@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from ..config import Config
 from ..pipeline import run_review
@@ -98,9 +99,7 @@ def _predictions(
     return result.findings, result.provenance.run_id, ""
 
 
-def _load_cached(
-    output_dir: Path, pdf: Path
-) -> tuple[list[Finding], str, dict[str, Any]] | None:
+def _load_cached(output_dir: Path, pdf: Path) -> tuple[list[Finding], str, dict[str, Any]] | None:
     """Latest completed run for this paper, if one exists."""
     paper_dir = output_dir / slugify(pdf.stem)
     pointer = paper_dir / "latest.txt"

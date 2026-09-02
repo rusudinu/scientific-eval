@@ -7,8 +7,8 @@ import json
 import pytest
 
 from scieval.calibrate import (
-    GroundTruthError,
     TEMPLATE,
+    GroundTruthError,
     aggregate,
     find_pairs,
     load,
@@ -20,11 +20,21 @@ from scieval.calibrate.metrics import PaperReport
 from scieval.schemas import Finding, Severity
 
 
-def _finding(quote, description="", severity=Severity.major, category="numbers",
-             location="4 Results", source_pass="pass2") -> Finding:
+def _finding(
+    quote,
+    description="",
+    severity=Severity.major,
+    category="numbers",
+    location="4 Results",
+    source_pass="pass2",
+) -> Finding:
     return Finding(
-        severity=severity, category=category, location=location, quote=quote,
-        description=description, source_pass=source_pass,
+        severity=severity,
+        category=category,
+        location=location,
+        quote=quote,
+        description=description,
+        source_pass=source_pass,
     )
 
 
@@ -45,9 +55,11 @@ def test_find_pairs_only_returns_reviewed_papers(tmp_path):
 def test_load_accepts_a_bare_list(tmp_path):
     (tmp_path / "p.pdf").write_bytes(b"%PDF")
     review = tmp_path / "p.review.json"
-    review.write_text(json.dumps([
-        {"severity": "minor", "category": "spelling", "quote": "teh", "description": "typo"}
-    ]))
+    review.write_text(
+        json.dumps(
+            [{"severity": "minor", "category": "spelling", "quote": "teh", "description": "typo"}]
+        )
+    )
     truth = load(tmp_path / "p.pdf", review)
     assert len(truth.findings) == 1
     assert truth.findings[0].severity is Severity.minor
@@ -77,14 +89,18 @@ def test_template_is_loadable(tmp_path):
 
 
 def test_matching_pairs_the_same_issue_despite_wording():
-    truth = [_finding(
-        "accuracy of 94.2% on the held-out set",
-        "The abstract says 94.2% but Table 3 says 91.7%.",
-    )]
-    predicted = [_finding(
-        "accuracy of 94.2% on the held-out set",
-        "Abstract reports 94.2%, Table 3 reports 91.7% for the same run.",
-    )]
+    truth = [
+        _finding(
+            "accuracy of 94.2% on the held-out set",
+            "The abstract says 94.2% but Table 3 says 91.7%.",
+        )
+    ]
+    predicted = [
+        _finding(
+            "accuracy of 94.2% on the held-out set",
+            "Abstract reports 94.2%, Table 3 reports 91.7% for the same run.",
+        )
+    ]
     result = match_findings(truth, predicted)
     assert len(result.matches) == 1
     assert result.matches[0].severity_agrees is True
@@ -93,8 +109,9 @@ def test_matching_pairs_the_same_issue_despite_wording():
 
 def test_unrelated_findings_do_not_match():
     truth = [_finding("accuracy of 94.2%", "Numbers disagree.")]
-    predicted = [_finding("we optimise the cache", "British spelling used here.",
-                          category="language")]
+    predicted = [
+        _finding("we optimise the cache", "British spelling used here.", category="language")
+    ]
     result = match_findings(truth, predicted)
     assert not result.matches
     assert len(result.missed) == 1
@@ -129,10 +146,15 @@ def test_metrics_add_up():
         _finding("completely different text", "Unrelated.", category="grammar"),
     ]
     report = aggregate(
-        [PaperReport(
-            paper="p.pdf", run_id="r1", result=match_findings(truth, predicted),
-            truth_count=2, predicted_count=2,
-        )],
+        [
+            PaperReport(
+                paper="p.pdf",
+                run_id="r1",
+                result=match_findings(truth, predicted),
+                truth_count=2,
+                predicted_count=2,
+            )
+        ],
         {"threshold": 70.0},
     )
     assert report.overall.true_positives == 1
@@ -154,10 +176,24 @@ def test_report_files_render(tmp_path):
     truth = [_finding("quote one exactly here", "First issue.")]
     predicted = [_finding("quote one exactly here", "First issue.")]
     report = aggregate(
-        [PaperReport(paper="p.pdf", run_id="r1", result=match_findings(truth, predicted),
-                     truth_count=1, predicted_count=1)],
-        {"threshold": 70.0, "model": "m", "quantization": "Q4", "provider": "lmstudio",
-         "prompt_version": "1.0.0", "seed": 42, "repeats": 1},
+        [
+            PaperReport(
+                paper="p.pdf",
+                run_id="r1",
+                result=match_findings(truth, predicted),
+                truth_count=1,
+                predicted_count=1,
+            )
+        ],
+        {
+            "threshold": 70.0,
+            "model": "m",
+            "quantization": "Q4",
+            "provider": "lmstudio",
+            "prompt_version": "1.0.0",
+            "seed": 42,
+            "repeats": 1,
+        },
     )
     markdown = render_markdown(report)
     assert "# Calibration report" in markdown
@@ -179,18 +215,23 @@ def test_a_failed_paper_is_excluded_from_the_scores_and_named():
     from scieval.calibrate.matcher import MatchResult
 
     good = PaperReport(
-        paper="good.pdf", run_id="r1",
+        paper="good.pdf",
+        run_id="r1",
         result=match_findings(
             [_finding("quote one exactly here", "First issue.")],
             [_finding("quote one exactly here", "First issue.")],
         ),
-        truth_count=1, predicted_count=1,
+        truth_count=1,
+        predicted_count=1,
     )
     broken = PaperReport(
-        paper="scan.pdf", run_id="",
-        result=MatchResult(matches=[], missed=[_finding("a", "b"), _finding("c", "d")],
-                           spurious=[]),
-        truth_count=2, predicted_count=0,
+        paper="scan.pdf",
+        run_id="",
+        result=MatchResult(
+            matches=[], missed=[_finding("a", "b"), _finding("c", "d")], spurious=[]
+        ),
+        truth_count=2,
+        predicted_count=0,
         error="scan.pdf has almost no extractable text",
     )
     report = aggregate([good, broken], {"threshold": 70.0})

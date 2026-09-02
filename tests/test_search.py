@@ -41,7 +41,9 @@ def test_doi_lookup_returns_metadata():
 
 @respx.mock
 def test_retraction_is_detected():
-    retracted = dict(CROSSREF_ITEM, **{"update-to": [{"type": "retraction", "label": "Retraction"}]})
+    retracted = dict(
+        CROSSREF_ITEM, **{"update-to": [{"type": "retraction", "label": "Retraction"}]}
+    )
     respx.get(url__startswith="https://api.crossref.org/works/10.1000").mock(
         return_value=httpx.Response(200, json={"message": retracted})
     )
@@ -82,16 +84,20 @@ def test_openalex_is_the_fallback():
     respx.get(url__startswith="https://api.openalex.org/works").mock(
         return_value=httpx.Response(
             200,
-            json={"results": [{
-                "id": "https://openalex.org/W1",
-                "title": "Learned cache replacement",
-                "publication_year": 2021,
-                "type": "article",
-                "doi": "https://doi.org/10.1000/jsr.2021.0042",
-                "is_retracted": False,
-                "authorships": [{"author": {"display_name": "W. Chen"}}],
-                "primary_location": {"source": {"display_name": "JSR"}},
-            }]},
+            json={
+                "results": [
+                    {
+                        "id": "https://openalex.org/W1",
+                        "title": "Learned cache replacement",
+                        "publication_year": 2021,
+                        "type": "article",
+                        "doi": "https://doi.org/10.1000/jsr.2021.0042",
+                        "is_retracted": False,
+                        "authorships": [{"author": {"display_name": "W. Chen"}}],
+                        "primary_location": {"source": {"display_name": "JSR"}},
+                    }
+                ]
+            },
         )
     )
     record = _lookup().lookup(raw="x", title="Learned cache replacement")
@@ -127,6 +133,7 @@ def test_configured_web_search_with_a_key_is_used(monkeypatch):
 
 
 # --- title matching -------------------------------------------------------------
+
 
 def test_a_survey_about_a_paper_is_not_that_paper():
     """token_set_ratio scored this pair 100; the survey is a different work."""

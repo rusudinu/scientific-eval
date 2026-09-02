@@ -98,14 +98,24 @@ class PassRunner:
         self._emit(f"{label} -> {model}")
         user = f"{task_prompt}\n\n=== INPUT ===\n{payload}"
         result = structured_call(
-            self.client, model=model, system=self.system_prompt, user=user, schema=schema,
+            self.client,
+            model=model,
+            system=self.system_prompt,
+            user=user,
+            schema=schema,
             schema_name=schema.__name__,
         )
         self.provenance.add_call(
             CallRecord(
-                pass_name=pass_name, label=label, model=result.model or model, mode=result.mode,
-                ok=result.ok, attempts=result.attempts, duration_s=result.duration_s,
-                usage=result.usage, error=result.error,
+                pass_name=pass_name,
+                label=label,
+                model=result.model or model,
+                mode=result.mode,
+                ok=result.ok,
+                attempts=result.attempts,
+                duration_s=result.duration_s,
+                usage=result.usage,
+                error=result.error,
             )
         )
         if not result.ok:
@@ -122,16 +132,28 @@ class PassRunner:
         except Exception as exc:
             self.provenance.add_call(
                 CallRecord(
-                    pass_name=pass_name, label=label, model=model, mode="text", ok=False,
-                    attempts=1, duration_s=0.0, error=str(exc),
+                    pass_name=pass_name,
+                    label=label,
+                    model=model,
+                    mode="text",
+                    ok=False,
+                    attempts=1,
+                    duration_s=0.0,
+                    error=str(exc),
                 )
             )
             self.provenance.errors.append(f"{label}: {exc}")
             return ""
         self.provenance.add_call(
             CallRecord(
-                pass_name=pass_name, label=label, model=result.model, mode="text", ok=True,
-                attempts=1, duration_s=result.duration_s, usage=result.usage,
+                pass_name=pass_name,
+                label=label,
+                model=result.model,
+                mode="text",
+                ok=True,
+                attempts=1,
+                duration_s=result.duration_s,
+                usage=result.usage,
             )
         )
         return result.text

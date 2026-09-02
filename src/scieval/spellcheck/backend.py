@@ -48,9 +48,7 @@ class PySpellcheckerBackend:
             by_lowered.setdefault(token.lower(), set()).add(token)
         unknown_lower = self._checker.unknown(list(by_lowered))
         return {
-            original
-            for lowered in unknown_lower
-            for original in by_lowered.get(lowered, set())
+            original for lowered in unknown_lower for original in by_lowered.get(lowered, set())
         }
 
     def correction(self, token: str) -> str | None:
@@ -85,7 +83,13 @@ def _pyspell_language(language: str) -> str:
 
 
 def _hunspell_language(language: str) -> str:
-    mapping = {"en-gb": "en_GB", "en_gb": "en_GB", "en-us": "en_US", "en_us": "en_US", "en": "en_US"}
+    mapping = {
+        "en-gb": "en_GB",
+        "en_gb": "en_GB",
+        "en-us": "en_US",
+        "en_us": "en_US",
+        "en": "en_US",
+    }
     return mapping.get(language.lower(), language)
 
 

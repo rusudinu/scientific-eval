@@ -7,10 +7,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from fixtures.paper_builder import build  # noqa: E402
+from fixtures.paper_builder import build
 
-from scieval.config import load_config  # noqa: E402
-from scieval.pipeline import build_paper_context  # noqa: E402
+from scieval.config import load_config
+from scieval.pipeline import build_paper_context
 
 
 @pytest.fixture(scope="session")

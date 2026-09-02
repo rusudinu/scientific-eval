@@ -21,8 +21,8 @@ REFERENCE_IN_TEXT = re.compile(
 
 @dataclass
 class Caption:
-    kind: str          # "figure" | "table" | "other"
-    id: str            # e.g. "Figure 1"
+    kind: str  # "figure" | "table" | "other"
+    id: str  # e.g. "Figure 1"
     caption: str
     page: int
     referenced_in_text: bool = False

@@ -13,7 +13,9 @@ YEAR = re.compile(r"\b(19|20)\d{2}[a-z]?\b")
 NUMBERED_ENTRY = re.compile(r"^\s*(?:\[(\d{1,3})\]|(\d{1,3})[.)])\s+(?=\S)")
 # In-text numeric citations: [3], [3, 5], [3-7], [3], [4]
 NUMERIC_CITATION = re.compile(r"\[(\d{1,3}(?:\s*[-,;]\s*\d{1,3})*)\]")
-AUTHOR_YEAR = re.compile(r"\(?\b([A-Z][A-Za-z'\-]+)(?:\s+et\s+al\.?|\s+(?:and|&)\s+[A-Z][A-Za-z'\-]+)?,?\s*\(?((?:19|20)\d{2})[a-z]?\)?")
+AUTHOR_YEAR = re.compile(
+    r"\(?\b([A-Z][A-Za-z'\-]+)(?:\s+et\s+al\.?|\s+(?:and|&)\s+[A-Z][A-Za-z'\-]+)?,?\s*\(?((?:19|20)\d{2})[a-z]?\)?"
+)
 
 
 @dataclass
@@ -93,7 +95,7 @@ def _strip_leading_number(raw: str) -> tuple[int | None, str]:
     if not m:
         return None, raw.strip()
     number = m.group(1) or m.group(2)
-    return int(number), raw[m.end():].strip()
+    return int(number), raw[m.end() :].strip()
 
 
 def _parse_entry(index: int, raw: str) -> Reference:
@@ -114,7 +116,8 @@ def _guess_title(raw: str) -> str | None:
     working = DOI.sub("", raw)
     parts = [p.strip(" .,") for p in re.split(r"(?<=[.?])\s+", working) if p.strip(" .,")]
     candidates = [
-        p for p in parts
+        p
+        for p in parts
         if len(p) > 15 and not re.fullmatch(r"[A-Z][A-Za-z'\-]+(,? (and |& )?[A-Z]\.)+", p)
     ]
     if not candidates:
