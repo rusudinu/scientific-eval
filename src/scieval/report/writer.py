@@ -211,12 +211,17 @@ def _flatten(output: Any) -> list[dict]:
 
 
 def _limitations(pass_outputs: dict[str, Any]) -> list[tuple[str, str]]:
-    return [
-        (name, limitation)
-        for name, output in pass_outputs.items()
-        for entry in _flatten(output)
-        for limitation in entry.get("limitations", [])
-    ]
+    """Unique (pass, limitation) pairs; repeated runs report the same ones twice."""
+    seen: set[tuple[str, str]] = set()
+    unique: list[tuple[str, str]] = []
+    for name, output in pass_outputs.items():
+        for entry in _flatten(output):
+            for limitation in entry.get("limitations", []):
+                key = (name, " ".join(str(limitation).split()))
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(key)
+    return unique
 
 
 def _unverifiable(pass_outputs: dict[str, Any]) -> list[str]:

@@ -320,3 +320,20 @@ def test_a_supported_claim_check_produces_no_finding():
         "supporting_evidence": "Table 1", "verdict": "supported", "explanation": "",
     }])
     assert findings_from_pass2(output) == []
+
+
+def test_repeated_runs_do_not_duplicate_limitation_lines():
+    provenance = RunProvenance(
+        run_id="r", paper="p.pdf", paper_sha256="a", provider="lmstudio", base_url="http://x",
+        model="m", quantization="Q4", model_info={}, prompt_version="1.0.0", prompt_hashes={},
+        seed=42, temperature=0.0, repeats=2, reference_provider="none",
+        web_search_provider="none", search_tool_available=False, started_at="now",
+    )
+    report = fallback_report(
+        [], provenance,
+        {"pass1": {"runs": [
+            [{"section": "1", "limitations": ["no candidates provided"]}],
+            [{"section": "1", "limitations": ["no candidates provided"]}],
+        ]}},
+    )
+    assert report.count("no candidates provided") == 1
