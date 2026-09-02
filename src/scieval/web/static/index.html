@@ -596,8 +596,9 @@ function findingsList(findings) {
     const unstable = f.stability === 'unstable' ? ' · unstable' : '';
     const quote = f.quote
       ? `<div class="quote">${escapeHtml(trim(f.quote, 260))}</div>` : '';
-    const link = f.url
-      ? ` <a class="link" href="${escapeHtml(f.url)}" target="_blank" rel="noopener">Source</a>`
+    const href = safeUrl(f.url);
+    const link = href
+      ? ` <a class="link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Source</a>`
       : '';
     const fix = f.correction
       ? `<div class="fix">→ ${escapeHtml(f.correction)}</div>` : '';
@@ -696,6 +697,14 @@ function escapeHtml(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 const trim = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+
+/* Findings carry URLs produced by a model or a search backend. Escaping keeps a
+   value inside the attribute, but it does not stop `javascript:`, so the scheme
+   is checked before anything becomes a link. */
+function safeUrl(value) {
+  const url = String(value || '').trim();
+  return /^https?:\/\//i.test(url) ? url : '';
+}
 
 /* Minimal Markdown: headings, tables, lists, blockquotes, code, emphasis.
    The synthesis report is the only Markdown rendered here, and we generate it,

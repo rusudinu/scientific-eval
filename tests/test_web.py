@@ -179,3 +179,23 @@ def test_the_registry_evicts_old_jobs():
         assert registry.get(first.id) is None
     finally:
         registry.shutdown()
+
+
+def test_an_oversized_upload_is_refused(client, tmp_path, monkeypatch):
+    """The body is read into memory, so it has to be bounded."""
+    import scieval.web.app as web_app
+
+    monkeypatch.setattr(web_app, "MAX_UPLOAD_BYTES", 1024)
+    big = b"%PDF-1.4\n" + b"0" * 4096
+    response = client.post("/api/runs", files={"file": ("big.pdf", big, "application/pdf")})
+    assert response.status_code == 413
+    assert "larger than" in response.json()["detail"]
+
+
+def test_the_page_only_links_http_urls():
+    """A `javascript:` URL from a model or a search result must not become a link."""
+    from scieval.web.app import STATIC_DIR
+
+    page = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    assert "function safeUrl(" in page
+    assert "href=\"${escapeHtml(href)}\"" in page

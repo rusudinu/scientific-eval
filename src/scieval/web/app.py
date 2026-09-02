@@ -19,6 +19,9 @@ from .jobs import JobRegistry, safe_filename
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 POLL_SECONDS = 0.3
+# The upload is read into memory before it is written, so it has to be bounded.
+# Papers are rarely over a few MB; 64 MB is generous for a scanned one.
+MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 
 
 class MissingDependency(RuntimeError):
@@ -95,7 +98,12 @@ def create_app(config: Config, *, upload_dir: Path | None = None):
         passes: Annotated[str, Form()] = "",
     ) -> dict[str, Any]:
         name = safe_filename(file.filename or "paper.pdf")
-        content = await file.read()
+        content = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"{name} is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB",
+            )
         if not content.startswith(b"%PDF"):
             raise HTTPException(status_code=400, detail=f"{name} is not a PDF file")
         target = uploads / name
@@ -209,13 +217,12 @@ def _counts(findings) -> dict[str, int]:
 
 def _run_dir(output_dir: Path, paper: str, run_id: str) -> Path:
     """Resolve a stored run, refusing anything that escapes the output directory."""
+    from fastapi import HTTPException
+
     root = output_dir.resolve()
     candidate = (root / Path(paper).name / Path(run_id).name).resolve()
-    if root not in candidate.parents and candidate.parent != root:
-        raise ValueError("path outside the output directory")
-    if not candidate.is_dir():
-        from fastapi import HTTPException
-
+    outside = root not in candidate.parents and candidate.parent != root
+    if outside or not candidate.is_dir():
         raise HTTPException(status_code=404, detail="unknown run")
     return candidate
 

@@ -42,7 +42,7 @@ class CrossrefLookup:
             timeout=timeout,
             headers={
                 "User-Agent": (
-                    "scientific-eval/0.1 (https://github.com/codingshadows/scientific-eval"
+                    "scientific-eval/0.1 (https://github.com/rusudinu/scientific-eval"
                     + (f"; mailto:{mailto}" if mailto else "")
                     + ")"
                 )
