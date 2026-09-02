@@ -304,8 +304,15 @@ heuristics found is discarded.
 uv run pytest
 ```
 
-The tests build a synthetic paper with known defects (`tests/fixtures/paper_builder.py`) and
-run the whole pipeline against a scripted model, so no server is needed.
+```bash
+SCIEVAL_NETWORK_TESTS=1 uv run pytest tests/test_network.py -v
+```
+
+The default suite builds a synthetic paper with known defects (`tests/fixtures/paper_builder.py`) and
+runs the whole pipeline against a scripted model, so no server is needed. The network
+tests are opt-in and call Crossref and OpenAlex for real: a mocked test cannot catch a
+query parameter the service rejects, which is how an unsupported `select` field silently
+turned every title lookup into "no such paper".
 
 ```
 src/scieval/

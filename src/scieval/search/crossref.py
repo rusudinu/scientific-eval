@@ -12,7 +12,14 @@ from .base import ReferenceRecord
 
 CROSSREF_API = "https://api.crossref.org/works"
 OPENALEX_API = "https://api.openalex.org/works"
-TITLE_MATCH_THRESHOLD = 82.0
+# `token_set_ratio` scores a superset title 100 ("... : A Survey" against the paper
+# it surveys), so titles are compared with a symmetric, length-sensitive ratio.
+# Measured separation on real pairs: true matches 100, near misses 51-91.
+TITLE_MATCH_THRESHOLD = 92.0
+TITLE_PLAUSIBLE_THRESHOLD = 78.0
+# A title that matches but whose year is years away is a different paper.
+YEAR_TOLERANCE = 1
+YEAR_PENALTY = 25.0
 PREPRINT_MARKERS = ("arxiv", "biorxiv", "medrxiv", "ssrn", "preprint", "posted-content", "chemrxiv")
 
 
@@ -50,7 +57,7 @@ class CrossrefLookup:
             record = self._by_doi(doi)
             if record.found:
                 return record
-        record = self._by_bibliographic(raw, title)
+        record = self._by_bibliographic(raw, title, year)
         if record.found:
             return record
         if title:
@@ -79,24 +86,25 @@ class CrossrefLookup:
             return ReferenceRecord(found=False, source="crossref")
         return self._to_record(data["message"], score=100.0)
 
-    def _by_bibliographic(self, raw: str, title: str | None) -> ReferenceRecord:
+    def _by_bibliographic(
+        self, raw: str, title: str | None, year: str | None = None
+    ) -> ReferenceRecord:
         query = (title or raw)[:400]
-        data = self._get(
-            CROSSREF_API,
-            params={"query.bibliographic": query, "rows": 5, "select":
-                    "DOI,title,author,issued,container-title,type,URL,abstract,update-to,subtype"},
-        )
+        # No `select`: an unsupported field name there makes Crossref reject the whole
+        # query with a 400, which is indistinguishable from "no such paper".
+        data = self._get(CROSSREF_API, params={"query.bibliographic": query, "rows": 5})
         items = ((data or {}).get("message") or {}).get("items") or []
         best: ReferenceRecord | None = None
         for item in items:
             candidate = self._to_record(item)
-            candidate.match_score = _title_score(title or raw, candidate.title)
+            candidate.match_score = score_match(title or raw, candidate.title, year, candidate.year)
             if best is None or candidate.match_score > best.match_score:
                 best = candidate
         if best and best.match_score >= TITLE_MATCH_THRESHOLD:
             return best
-        # A near miss is still worth reporting so the model can call a mismatch.
-        if best and best.match_score >= 60.0:
+        # A near miss is still worth returning so the model can call a mismatch; a poor
+        # one is not, because a plausible-looking wrong paper is worse than nothing.
+        if best and best.match_score >= TITLE_PLAUSIBLE_THRESHOLD:
             best.found = True
             return best
         return ReferenceRecord(found=False, source="crossref")
@@ -104,8 +112,8 @@ class CrossrefLookup:
     def _openalex(self, title: str) -> ReferenceRecord:
         data = self._get(OPENALEX_API, params={"search": title[:300], "per-page": 3})
         for item in (data or {}).get("results", []):
-            score = _title_score(title, item.get("title") or "")
-            if score < 70.0:
+            score = score_match(title, item.get("title") or "")
+            if score < TITLE_PLAUSIBLE_THRESHOLD:
                 continue
             location = (item.get("primary_location") or {}).get("source") or {}
             return ReferenceRecord(
@@ -166,10 +174,28 @@ def _issued_year(item: dict) -> str:
     return str(parts[0]) if parts else ""
 
 
-def _title_score(left: str, right: str) -> float:
-    if not left or not right:
+def score_match(
+    title: str, candidate_title: str, year: str | None = None, candidate_year: str | None = None
+) -> float:
+    """How well a retrieved record matches the reference, 0-100."""
+    if not title or not candidate_title:
         return 0.0
-    return float(fuzz.token_set_ratio(_norm(left), _norm(right)))
+    score = float(fuzz.token_sort_ratio(_norm(title), _norm(candidate_title)))
+    return max(0.0, score - _year_penalty(year, candidate_year))
+
+
+def _year_penalty(year: str | None, candidate_year: str | None) -> float:
+    left, right = _as_year(year), _as_year(candidate_year)
+    if left is None or right is None:
+        return 0.0
+    return YEAR_PENALTY if abs(left - right) > YEAR_TOLERANCE else 0.0
+
+
+def _as_year(value: str | None) -> int | None:
+    if not value:
+        return None
+    match = re.search(r"(19|20)\d{2}", str(value))
+    return int(match.group(0)) if match else None
 
 
 def _norm(text: str) -> str:

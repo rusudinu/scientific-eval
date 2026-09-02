@@ -124,3 +124,60 @@ def test_configured_web_search_with_a_key_is_used(monkeypatch):
     provider = build_web_search(config)
     assert provider.name == "tavily"
     assert provider.available is True
+
+
+# --- title matching -------------------------------------------------------------
+
+def test_a_survey_about_a_paper_is_not_that_paper():
+    """token_set_ratio scored this pair 100; the survey is a different work."""
+    from scieval.search.crossref import TITLE_MATCH_THRESHOLD, score_match
+
+    score = score_match(
+        "Deep residual learning for image recognition",
+        "Deep Residual Learning for Image Recognition: A Survey",
+    )
+    assert score < TITLE_MATCH_THRESHOLD
+
+
+def test_the_same_paper_matches_despite_casing():
+    from scieval.search.crossref import TITLE_MATCH_THRESHOLD, score_match
+
+    assert score_match("Attention is all you need", "Attention Is All You Need") >= (
+        TITLE_MATCH_THRESHOLD
+    )
+
+
+def test_an_unrelated_paper_does_not_look_plausible():
+    """A fabricated reference previously matched a real, unrelated paper at 84."""
+    from scieval.search.crossref import TITLE_PLAUSIBLE_THRESHOLD, score_match
+
+    score = score_match(
+        "A study of imaginary caching in nonexistent distributed systems",
+        "Write caching in distributed file systems",
+    )
+    assert score < TITLE_PLAUSIBLE_THRESHOLD
+
+
+def test_a_matching_title_with_a_distant_year_is_penalised():
+    from scieval.search.crossref import TITLE_MATCH_THRESHOLD, score_match
+
+    same_year = score_match("Static cache sizing", "Static cache sizing", "2018", "2018")
+    far_year = score_match("Static cache sizing", "Static cache sizing", "2018", "2003")
+    assert same_year >= TITLE_MATCH_THRESHOLD
+    assert far_year < TITLE_MATCH_THRESHOLD
+    # A one-year difference is normal between preprint and publication.
+    assert score_match("Static cache sizing", "Static cache sizing", "2018", "2019") == same_year
+
+
+@respx.mock
+def test_the_bibliographic_query_sends_no_select_parameter():
+    """An unsupported `select` field made Crossref 400 the whole query, which read
+    as 'no such paper'."""
+    route = respx.get(url__startswith="https://api.crossref.org/works").mock(
+        return_value=httpx.Response(200, json={"message": {"items": [CROSSREF_ITEM]}})
+    )
+    respx.get(url__startswith="https://api.openalex.org/works").mock(
+        return_value=httpx.Response(200, json={"results": []})
+    )
+    _lookup().lookup(raw="x", title="Learned cache replacement", year="2021")
+    assert "select" not in str(route.calls[0].request.url)
