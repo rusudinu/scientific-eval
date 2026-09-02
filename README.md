@@ -53,6 +53,24 @@ Output lands in `out/<paper>/<run-id>/`:
 
 `out/runs.jsonl` gets one summary line per run, so runs can be compared later.
 
+### Try it without a paper
+
+The test fixture builds a short synthetic paper containing known defects: a headline number
+that contradicts the table it comes from, a trace count that changes between sections, a
+causal claim about something never measured, a figure never referenced, two misspellings and
+a British/American spelling mix.
+
+```bash
+uv run python tests/fixtures/paper_builder.py /tmp/synthetic-paper.pdf
+```
+
+```bash
+uv run scieval review /tmp/synthetic-paper.pdf
+```
+
+It is a useful smoke test for a new endpoint or a new model: a model that cannot find the
+31.4% versus 27.2% contradiction will not find subtler problems in a real paper.
+
 ## Commands
 
 ```bash
